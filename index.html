@@ -103,8 +103,12 @@
         </button>
       </div>
 
-      <div class="text-[11px] text-slate-400 dark:text-slate-500">
-        Təhlükəsizlik şifrəsi ilə qorunur
+      <div class="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between pt-1">
+        <span>Təhlükəsizlik şifrəsi ilə qorunur</span>
+        <button type="button" onclick="openSettingsModal()" class="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center space-x-1 text-xs">
+          <i class="fa-solid fa-gear"></i>
+          <span>Ayarlar</span>
+        </button>
       </div>
     </div>
   </div>
@@ -128,7 +132,7 @@
           <i class="fa-solid fa-cash-register"></i>
         </div>
         <div>
-          <h1 class="text-sm font-bold leading-tight">Canlı Kassa Paneli</h1>
+          <h1 id="headerStoreTitle" class="text-sm font-bold leading-tight">Canlı Kassa Paneli</h1>
           <div class="flex items-center space-x-1.5 text-[11px] text-indigo-100 dark:text-slate-400">
             <span id="connectionDot" class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
             <span id="connectionStatus">Qoşulur...</span>
@@ -138,6 +142,11 @@
 
       <!-- Alətlər Düymələri -->
       <div class="flex items-center space-x-1.5">
+        <!-- Ayarlar -->
+        <button onclick="openSettingsModal()" id="settingsBtn" class="p-2 rounded-xl bg-indigo-700/80 dark:bg-slate-800 text-white transition active:scale-95 text-xs" title="Ayarlar">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+
         <!-- Səs Aç/Bağla -->
         <button onclick="toggleSound()" id="soundBtn" class="p-2 rounded-xl bg-indigo-700/80 dark:bg-slate-800 text-white transition active:scale-95 text-xs" title="Səsi Aç/Bağla">
           <i id="soundIcon" class="fa-solid fa-volume-high"></i>
@@ -321,15 +330,144 @@
   </main>
 
   <!-- ========================================== -->
+  <!-- AYARLAR MODALI (KÖKLƏMƏLƏR)                 -->
+  <!-- ========================================== -->
+  <div id="settingsModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      
+      <!-- Modal Başlıq -->
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-xl bg-indigo-600/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-sm">
+            <i class="fa-solid fa-gear"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white leading-tight">Panel Ayarları</h3>
+            <p class="text-[11px] text-slate-400 dark:text-slate-500">Supabase, mağaza və təhlükəsizlik kökləmələri</p>
+          </div>
+        </div>
+        <button onclick="closeSettingsModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Ayar Formu -->
+      <div class="space-y-3.5 text-xs">
+
+        <!-- 1. Mağaza Adı -->
+        <div class="space-y-1">
+          <label class="block font-semibold text-slate-700 dark:text-slate-200">
+            <i class="fa-solid fa-store mr-1 text-indigo-500"></i> Mağaza / Filial Adı
+          </label>
+          <input type="text" id="settingStoreName" placeholder="Məs: Papatya Mağazası və ya Filial 1"
+                 class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <p class="text-[10px] text-slate-400">Paneldə və başlıqda görünəcək mağaza adı.</p>
+        </div>
+
+        <!-- 2. Supabase Layihə URL -->
+        <div class="space-y-1">
+          <label class="block font-semibold text-slate-700 dark:text-slate-200">
+            <i class="fa-solid fa-cloud mr-1 text-indigo-500"></i> Supabase Layihə URL (Project URL)
+          </label>
+          <input type="text" id="settingSupabaseUrl" placeholder="https://xxxx.supabase.co"
+                 class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-mono text-[11px] text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+
+        <!-- 3. Supabase Anon Key -->
+        <div class="space-y-1">
+          <label class="block font-semibold text-slate-700 dark:text-slate-200">
+            <i class="fa-solid fa-key mr-1 text-indigo-500"></i> Supabase Anon Key
+          </label>
+          <textarea id="settingSupabaseKey" rows="3" placeholder="eyJhbGci..."
+                    class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 font-mono text-[10px] text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 break-all"></textarea>
+        </div>
+
+        <!-- Bağlantını Yoxla Düyməsi & Nəticə -->
+        <div class="space-y-2 pt-1">
+          <div class="flex items-center space-x-2">
+            <button type="button" onclick="testSupabaseInHtml()" id="btnTestConn"
+                    class="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold py-2 px-3 rounded-xl transition flex items-center justify-center space-x-1.5 active:scale-95">
+              <i class="fa-solid fa-network-wired text-indigo-500"></i>
+              <span>Bağlantını Yoxla</span>
+            </button>
+            <button type="button" onclick="resetDefaultCredentials()"
+                    class="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-xl transition text-[11px] active:scale-95" title="Standart açarlara qaytar">
+              <i class="fa-solid fa-rotate-left"></i> Sıfırla
+            </button>
+          </div>
+          <div id="testConnResult" class="hidden p-2.5 rounded-xl text-[11px] border"></div>
+        </div>
+
+        <!-- 4. Giriş Şifrəsi -->
+        <div class="space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <label class="block font-semibold text-slate-700 dark:text-slate-200">
+            <i class="fa-solid fa-lock mr-1 text-indigo-500"></i> Giriş Şifrəsi
+          </label>
+          <div class="relative">
+            <input type="text" id="settingPassword" placeholder="Giriş şifrəsi"
+                   class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <p class="text-[10px] text-slate-400">Sayta daxil olarkən tələb olunan şifrəni dəyişə bilərsiniz.</p>
+        </div>
+
+        <!-- 5. Səs Testi & Ayarları -->
+        <div class="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <label class="block font-semibold text-slate-700 dark:text-slate-200">
+            <i class="fa-solid fa-volume-high mr-1 text-indigo-500"></i> Səs Bildirişi
+          </label>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-600 dark:text-slate-300">Yeni satış zamanı səs çıxar:</span>
+            <button type="button" onclick="testSoundInSettings()" class="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold text-[11px] hover:bg-indigo-100 transition">
+              <i class="fa-solid fa-play mr-1"></i> Səsi Yoxla
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Düymələr -->
+      <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center space-x-2">
+        <button onclick="closeSettingsModal()" class="w-1/3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+          Bağla
+        </button>
+        <button onclick="saveSettingsFromModal()" class="w-2/3 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-lg shadow-indigo-500/25 transition active:scale-95 flex items-center justify-center space-x-1.5">
+          <i class="fa-solid fa-check"></i>
+          <span>Yadda Saxla & Tətbiq Et</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================== -->
   <!-- JAVASCRIPT KODLARI                         -->
   <!-- ========================================== -->
   <script>
-    // Şifrə
-    const APP_PASSWORD = "Elsen0123456789-";
-
-    // Defolt Supabase açarları
+    // Standart Defolt Dəyərlər
+    const DEFAULT_APP_PASSWORD = "Elsen0123456789-";
     const DEFAULT_SUPABASE_URL = "https://zcjthobakvppowerkxmv.supabase.co";
     const DEFAULT_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjanRob2Jha3ZwcG93ZXJreG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MTQyNzMsImV4cCI6MjEwNTI5MDI3M30.ZLaSVPvowhwv50cv6W6d8AFYmPpPZ7oS5eZAxZzHI1U";
+    const DEFAULT_STORE_NAME = "Canlı Kassa Paneli";
+
+    function getActiveSupabaseUrl() {
+      return (localStorage.getItem('kassa_supabase_url') || DEFAULT_SUPABASE_URL).trim().replace(/\/+$/, '');
+    }
+    function getActiveSupabaseKey() {
+      return (localStorage.getItem('kassa_supabase_key') || DEFAULT_SUPABASE_KEY).trim();
+    }
+    function getActivePassword() {
+      return localStorage.getItem('kassa_custom_password') || DEFAULT_APP_PASSWORD;
+    }
+    function getActiveStoreName() {
+      return localStorage.getItem('kassa_store_name') || DEFAULT_STORE_NAME;
+    }
+
+    function updateStoreTitle() {
+      const name = getActiveStoreName();
+      const el = document.getElementById('headerStoreTitle');
+      if (el) el.innerText = name;
+      document.title = name;
+    }
 
     let supabaseClient = null;
     let realtimeChannel = null;
@@ -346,8 +484,10 @@
     // 1. ŞİFRƏ VƏ AUTH İDARƏETMƏSİ
     // -------------------------------------------------------------
     function checkAuth() {
+      updateStoreTitle();
+      const currentPassword = getActivePassword();
       const savedAuth = localStorage.getItem('kassa_auth_token');
-      if (savedAuth === APP_PASSWORD) {
+      if (savedAuth === currentPassword) {
         document.getElementById('authScreen').classList.add('hidden');
         initApp();
       } else {
@@ -360,9 +500,10 @@
       const entered = document.getElementById('passwordInput').value;
       const errorEl = document.getElementById('authError');
       const box = document.getElementById('authBox');
+      const currentPassword = getActivePassword();
 
-      if (entered === APP_PASSWORD) {
-        localStorage.setItem('kassa_auth_token', APP_PASSWORD);
+      if (entered === currentPassword) {
+        localStorage.setItem('kassa_auth_token', currentPassword);
         document.getElementById('authScreen').classList.add('hidden');
         errorEl.classList.add('hidden');
         initApp();
@@ -372,6 +513,109 @@
         void box.offsetWidth;
         box.classList.add('shake-animation');
       }
+    }
+
+    // -------------------------------------------------------------
+    // AYARLAR MODALI VƏ ƏMƏLİYYATLAR
+    // -------------------------------------------------------------
+    function openSettingsModal() {
+      document.getElementById('settingStoreName').value = getActiveStoreName();
+      document.getElementById('settingSupabaseUrl').value = getActiveSupabaseUrl();
+      document.getElementById('settingSupabaseKey').value = getActiveSupabaseKey();
+      document.getElementById('settingPassword').value = getActivePassword();
+
+      const resDiv = document.getElementById('testConnResult');
+      resDiv.classList.add('hidden');
+      resDiv.innerHTML = '';
+
+      document.getElementById('settingsModal').classList.remove('hidden');
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settingsModal').classList.add('hidden');
+    }
+
+    function resetDefaultCredentials() {
+      if (confirm("Bütün ayarları standart vəziyyətə qaytarmaq istəyirsiniz?")) {
+        document.getElementById('settingStoreName').value = DEFAULT_STORE_NAME;
+        document.getElementById('settingSupabaseUrl').value = DEFAULT_SUPABASE_URL;
+        document.getElementById('settingSupabaseKey').value = DEFAULT_SUPABASE_KEY;
+        document.getElementById('settingPassword').value = DEFAULT_APP_PASSWORD;
+      }
+    }
+
+    function testSoundInSettings() {
+      playChime(true);
+    }
+
+    async function testSupabaseInHtml() {
+      const url = document.getElementById('settingSupabaseUrl').value.trim().replace(/\/+$/, '');
+      const key = document.getElementById('settingSupabaseKey').value.trim();
+      const resDiv = document.getElementById('testConnResult');
+
+      if (!url || !key) {
+        resDiv.className = 'p-2.5 rounded-xl text-[11px] border bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800';
+        resDiv.innerHTML = '❌ <b>Xəta:</b> Supabase URL və Anon Key daxil edilməlidir!';
+        resDiv.classList.remove('hidden');
+        return;
+      }
+
+      resDiv.className = 'p-2.5 rounded-xl text-[11px] border bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800';
+      resDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Supabase ilə əlaqə yoxlanılır...';
+      resDiv.classList.remove('hidden');
+
+      try {
+        const resp = await fetch(`${url}/rest/v1/satislar?select=id,maya_deyeri,qazanc&limit=1`, {
+          headers: {
+            'apikey': key,
+            'Authorization': `Bearer ${key}`
+          }
+        });
+
+        if (resp.ok) {
+          resDiv.className = 'p-2.5 rounded-xl text-[11px] border bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
+          resDiv.innerHTML = '✅ <b>Bağlantı Uğurludur!</b> Supabase layihəsinə qoşuldu, `satislar` cədvəli və bütün sütunlar hazırdır.';
+        } else {
+          const errText = await resp.text();
+          if (errText.includes('maya_deyeri') || errText.includes('qazanc') || errText.includes('42703')) {
+            resDiv.className = 'p-2.5 rounded-xl text-[11px] border bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800';
+            resDiv.innerHTML = '⚠️ <b>Sütun Çatışmır!</b> `satislar` cədvəlində `maya_deyeri` sütunu yoxdur.<br>Zəhmət olmasa Supabase SQL Editor-da bu əmri icra edin:<br><code class="font-mono text-[10px] bg-amber-100 dark:bg-amber-900/60 p-1 rounded mt-1 inline-block">ALTER TABLE satislar ADD COLUMN IF NOT EXISTS maya_deyeri NUMERIC DEFAULT 0;</code>';
+          } else if (resp.status === 404) {
+            resDiv.className = 'p-2.5 rounded-xl text-[11px] border bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800';
+            resDiv.innerHTML = '❌ <b>Xəta (404):</b> `satislar` cədvəli tapılmadı! Supabase SQL Editor-da cədvəl yaratma skriptini icra edin.';
+          } else if (resp.status === 401 || resp.status === 403) {
+            resDiv.className = 'p-2.5 rounded-xl text-[11px] border bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800';
+            resDiv.innerHTML = `❌ <b>Xəta (${resp.status}):</b> Anon Key yanlışdır və ya oxuma icazəsi (RLS) verilməyib!`;
+          } else {
+            resDiv.className = 'p-2.5 rounded-xl text-[11px] border bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800';
+            resDiv.innerHTML = `❌ <b>Xəta (${resp.status}):</b> ${errText.substring(0, 120)}`;
+          }
+        }
+      } catch (err) {
+        resDiv.className = 'p-2.5 rounded-xl text-[11px] border bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800';
+        resDiv.innerHTML = `❌ <b>Şəbəkə Xətası:</b> URL-i və ya internet bağlantınızı yoxlayın (${err.message})`;
+      }
+    }
+
+    function saveSettingsFromModal() {
+      const storeName = document.getElementById('settingStoreName').value.trim() || DEFAULT_STORE_NAME;
+      const url = document.getElementById('settingSupabaseUrl').value.trim().replace(/\/+$/, '') || DEFAULT_SUPABASE_URL;
+      const key = document.getElementById('settingSupabaseKey').value.trim() || DEFAULT_SUPABASE_KEY;
+      const pwd = document.getElementById('settingPassword').value.trim() || DEFAULT_APP_PASSWORD;
+
+      localStorage.setItem('kassa_store_name', storeName);
+      localStorage.setItem('kassa_supabase_url', url);
+      localStorage.setItem('kassa_supabase_key', key);
+      localStorage.setItem('kassa_custom_password', pwd);
+      localStorage.setItem('kassa_auth_token', pwd); // istifadəçinin avtomatik girişdə qalması üçün
+
+      updateStoreTitle();
+      closeSettingsModal();
+
+      showToast("⚙️ Ayarlar Yeniləndi", "Yeni Supabase və mağaza ayarları tətbiq edildi!", true);
+
+      // Supabase tətbiqini yeni açarlarla yenidən başlat
+      initApp();
     }
 
     function togglePasswordVisibility() {
@@ -519,8 +763,12 @@
 
     function initApp() {
       initDates();
+      updateStoreTitle();
+      const url = getActiveSupabaseUrl();
+      const key = getActiveSupabaseKey();
+
       try {
-        supabaseClient = window.supabase.createClient(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY);
+        supabaseClient = window.supabase.createClient(url, key);
         document.getElementById('connectionStatus').innerText = "Canlı Qoşuldu";
         document.getElementById('connectionDot').className = "w-2 h-2 rounded-full bg-emerald-400 pulse-dot";
 
