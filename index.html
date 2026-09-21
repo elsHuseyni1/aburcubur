@@ -192,6 +192,36 @@ input::placeholder,textarea::placeholder{color:#5a6580}
   font-variant-numeric:tabular-nums;position:relative;z-index:1;
   color:#fff;line-height:1.1;
 }
+.stat-value-qty{
+  display:inline-flex;
+  align-items:baseline;
+  gap:6px;
+  flex-wrap:wrap;
+  font-size:clamp(16px,1.4vw,22px);
+  font-weight:800;
+  letter-spacing:-.5px;
+}
+.stat-value-qty .qty-num,
+.stat-value-qty .kg-num{
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+.stat-value-qty .qty-sep{
+  color:var(--accent);
+  opacity:.5;
+  font-weight:400;
+  font-size:1.15em;
+  margin:0 1px;
+  user-select:none;
+}
+.stat-value-qty .qty-unit{
+  font-size:.56em;
+  font-weight:700;
+  opacity:.75;
+  margin-left:2px;
+  letter-spacing:.2px;
+  text-transform:lowercase;
+}
 .stat-sub{font-size:12px;color:#cbd5e1;margin-top:8px;font-weight:600;position:relative;z-index:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .stat-sub span{color:#e2e8f0;font-weight:600}
 .pill{padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:700;letter-spacing:.3px}
@@ -412,8 +442,17 @@ td.num.pos{color:#6ee7b7}
 td.num.neg{color:#fda4af}
 td.num.mut{color:#fde68a;font-weight:700}
 .td-tarix{display:flex;flex-direction:column;gap:2px}
-.td-tarix .d{font-weight:700;color:#dbe3f2;font-size:12.5px;font-variant-numeric:tabular-nums}
-.td-tarix .t{font-size:10.5px;color:#94a3b8;font-variant-numeric:tabular-nums;font-weight:600}
+.td-dt-row{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.td-dt-row .d,
+.td-dt-row .t,
+.td-tarix .d,
+.td-tarix .t{font-weight:700;font-size:12.5px;font-variant-numeric:tabular-nums;line-height:1.2}
+.td-dt-row .d,
+.td-tarix .d{color:#dbe3f2}
+.td-dt-row .t,
+.td-tarix .t{color:#38bdf8}
+.td-dt-row .t-sep{opacity:.35;font-size:10px;color:#94a3b8}
+.td-tarix .tid{font-size:10px;color:#7c88a3;font-weight:600;font-variant-numeric:tabular-nums}
 .badge{
   display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:8px;
   font-size:11px;font-weight:800;letter-spacing:.4px;white-space:nowrap;
@@ -703,17 +742,24 @@ textarea.cyber-input{font-family:monospace;font-size:11px;line-height:1.5;resize
     gap:2px;
     width:100%;
   }
-  tbody td:first-child .td-tarix .d{
-    font-size:13px;
+  tbody td:first-child .td-dt-row{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    white-space:nowrap;
+  }
+  tbody td:first-child .td-dt-row .d,
+  tbody td:first-child .td-dt-row .t,
+  tbody td:first-child .td-tarix .d,
+  tbody td:first-child .td-tarix .t{
+    font-size:12.5px;
     font-weight:800;
-    color:#fff;
     line-height:1.2;
   }
-  tbody td:first-child .td-tarix .t{
-    font-size:10px;
-    color:#94a3b8;
-    font-weight:600;
-  }
+  tbody td:first-child .td-dt-row .d,
+  tbody td:first-child .td-tarix .d{color:#fff}
+  tbody td:first-child .td-dt-row .t,
+  tbody td:first-child .td-tarix .t{color:#38bdf8}
 
   /* 2. Müştəri xanası */
   tbody td .musteri{
@@ -954,6 +1000,13 @@ body.light-theme .stat[style*="--accent:#f472b6"],
 body.light-theme .stat[style*="--accent: #f472b6"] {
   --accent: #db2777;
 }
+body.light-theme .stat-value-qty .qty-unit {
+  color: #64748b;
+}
+body.light-theme #stKiloSub {
+  background: rgba(219, 39, 119, 0.12) !important;
+  color: #db2777 !important;
+}
 
 /* Faiz və Marja Pill-ləri */
 body.light-theme .pill.up {
@@ -1138,11 +1191,20 @@ body.light-theme tbody td {
 body.light-theme tbody tr:hover {
   background: rgba(0, 0, 0, 0.025);
 }
+body.light-theme .td-dt-row .d,
 body.light-theme .td-tarix .d {
   color: #0f172a;
   font-weight: 700;
 }
+body.light-theme .td-dt-row .t,
 body.light-theme .td-tarix .t {
+  color: #0284c7;
+  font-weight: 700;
+}
+body.light-theme .td-dt-row .t-sep {
+  color: #94a3b8;
+}
+body.light-theme .td-tarix .tid {
   color: #64748b;
 }
 body.light-theme .mname {
@@ -1285,11 +1347,13 @@ body.light-theme .toast-msg {
     color: #64748b;
     font-weight: 800;
   }
+  body.light-theme tbody td:first-child .td-dt-row .d,
   body.light-theme tbody td:first-child .td-tarix .d {
     color: #0f172a;
   }
+  body.light-theme tbody td:first-child .td-dt-row .t,
   body.light-theme tbody td:first-child .td-tarix .t {
-    color: #64748b;
+    color: #0284c7;
   }
   body.light-theme tbody td .mname {
     color: #0f172a;
@@ -1357,9 +1421,17 @@ body.light-theme .notif-badge{
 }
 .notif-item-body{flex:1;min-width:0}
 .notif-item-title{font-size:12.5px;font-weight:700;color:#fff;line-height:1.2}
-.notif-item-desc{font-size:11px;color:#94a3b8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.notif-item-time{font-size:10px;color:#64748b;margin-top:2px}
-.notif-item-del{
+.notif-item-time{
+  font-size:10.5px;
+  color:#7e8b9f;
+  margin-top:4px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-weight:600;
+}
+.notif-item-time i{font-size:9.5px;opacity:.8}
+.notif-sep{opacity:.4;font-size:9px}
   background:none;border:none;color:#64748b;cursor:pointer;
   padding:4px 6px;border-radius:6px;transition:all .2s;
 }
@@ -1544,6 +1616,7 @@ body.light-theme .notif-item-time{color:#64748b}
   <div class="toast-body">
     <div id="toastTitle" class="toast-title">Yeni Satış</div>
     <div id="toastMsg" class="toast-msg">0.00 ₼</div>
+    <div id="toastTime" class="toast-time" style="font-size:10px;color:#8894af;margin-top:2px;display:flex;gap:5px;align-items:center;font-weight:600"></div>
   </div>
 </div>
 
@@ -1705,16 +1778,23 @@ body.light-theme .notif-item-time{color:#64748b}
       <div class="stat-sub"><span class="pill dn" id="stBorc">0.00 ₼ borc</span></div>
     </div>
 
-    <!-- Orta Satış -->
-    <div class="stat" style="--accent:#f472b6">
+    <!-- Miqdar və Çəki (Kq) -->
+    <div class="stat" style="--accent:#f472b6" title="Ümumi Miqdar (Ədəd) və Çəki (Kq)">
       <div class="stat-top">
         <div class="stat-ico">
           <i class="fa-solid fa-scale-balanced"></i>
         </div>
-        <span class="stat-label">Orta Çek</span>
+        <span class="stat-label">Miqdar / Kq</span>
       </div>
-      <div class="stat-value" id="stAvg">0.00 ₼</div>
-      <div class="stat-sub"><span id="stAvgSub">bir satışa düşən</span></div>
+      <div class="stat-value stat-value-qty" id="stQtyKgBox">
+        <span class="qty-num"><span id="stEdedVal">0</span><span class="qty-unit"> əd</span></span>
+        <span class="qty-sep">/</span>
+        <span class="kg-num"><span id="stKiloVal">0</span><span class="qty-unit"> kq</span></span>
+      </div>
+      <div class="stat-sub">
+        <span class="pill info" id="stEdedSub">0 ədəd</span>
+        <span class="pill" id="stKiloSub" style="background:rgba(244,114,182,.14);color:#f472b6">0 kq</span>
+      </div>
     </div>
   </section>
 
@@ -1964,14 +2044,23 @@ function testSoundInSettings() {
    4) FLOATING TOAST BİLDİRİŞİ
    ===================================================================== */
 let toastTimer = null;
-function showToast(title, msg, isSale = true) {
+function showToast(title, msg, isSale = true, customDate = null) {
   const toast = $('toastNotification');
   const tTitle = $('toastTitle');
   const tMsg = $('toastMsg');
   const tIco = $('toastIco');
+  const tTime = $('toastTime');
 
   tTitle.textContent = title;
   tMsg.textContent = msg;
+
+  const d = customDate ? new Date(customDate) : new Date();
+  const dateStr = pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear();
+  const timeStr = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+
+  if (tTime) {
+    tTime.innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px"><i class="fa-regular fa-calendar-days"></i> ${dateStr}</span> <span style="opacity:0.4">•</span> <span style="display:inline-flex;align-items:center;gap:4px"><i class="fa-regular fa-clock"></i> ${timeStr}</span>`;
+  }
 
   if (isSale) {
     tIco.className = 'toast-ico';
@@ -2025,15 +2114,18 @@ function saveNotifications() {
   updateNotifBadge();
 }
 
-function addNotification(title, msg, isSale = true) {
-  const d = new Date();
+function addNotification(title, msg, isSale = true, customDate = null) {
+  const d = customDate ? new Date(customDate) : new Date();
+  const dateStr = pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear();
   const timeStr = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
   const notifItem = {
     id: Date.now() + '_' + Math.random().toString(36).substring(2, 6),
     title: title || 'Bildiriş',
     msg: msg || '',
     isSale: !!isSale,
-    time: timeStr
+    date: dateStr,
+    time: timeStr,
+    timestamp: d.getTime()
   };
 
   notifications.unshift(notifItem);
@@ -2081,6 +2173,18 @@ function renderNotificationList() {
   notifications.forEach(n => {
     const icoClass = n.isSale ? 'sale' : 'ret';
     const icoSymbol = n.isSale ? 'fa-cart-shopping' : 'fa-arrow-rotate-left';
+
+    // Tarix və Saat: mövcud deyilsə timestamp və ya bugünkü tarixdən çıxarılır
+    let dateStr = n.date || '';
+    let timeStr = n.time || '';
+    if (!dateStr && n.timestamp) {
+      const td = new Date(n.timestamp);
+      dateStr = pad(td.getDate()) + '.' + pad(td.getMonth() + 1) + '.' + td.getFullYear();
+    } else if (!dateStr) {
+      const td = new Date();
+      dateStr = pad(td.getDate()) + '.' + pad(td.getMonth() + 1) + '.' + td.getFullYear();
+    }
+
     html += `
       <div class="notif-item" id="notif-${n.id}">
         <div class="notif-item-ico ${icoClass}">
@@ -2089,7 +2193,11 @@ function renderNotificationList() {
         <div class="notif-item-body">
           <div class="notif-item-title">${notifEscape(n.title)}</div>
           <div class="notif-item-desc">${notifEscape(n.msg)}</div>
-          <div class="notif-item-time"><i class="fa-regular fa-clock"></i> ${n.time}</div>
+          <div class="notif-item-time">
+            <span class="notif-date"><i class="fa-regular fa-calendar-days"></i> ${dateStr}</span>
+            <span class="notif-sep">•</span>
+            <span class="notif-clock"><i class="fa-regular fa-clock"></i> ${timeStr}</span>
+          </div>
         </div>
         <button type="button" class="notif-item-del" onclick="deleteSingleNotification('${n.id}')" title="Bu bildirişi sil">
           <i class="fa-solid fa-xmark"></i>
@@ -2343,6 +2451,21 @@ async function fetchData(showLoading = true) {
 
     if (error) throw error;
 
+    // Çəki (Kq) ilə satılan məhsulları avtomatik və dəqiq müəyyən edirik
+    const knownKiloNames = new Set();
+    (data || []).forEach(r => {
+      const val = parseFloat(r.say) || 0;
+      if (Math.abs(val - Math.round(val)) > 0.0001) {
+        if (r.mehsul_adi) knownKiloNames.add(r.mehsul_adi.trim().toLowerCase());
+      }
+      if (r.is_kilo === true || r.is_kilo === 1 || r.is_kilo === 'true' || r.vahid === 'kg' || r.vahid === 'kq') {
+        if (r.mehsul_adi) knownKiloNames.add(r.mehsul_adi.trim().toLowerCase());
+      }
+      if (/\b(kg|kq|kilo|kiloqram|çəki|ceki)\b/i.test(r.mehsul_adi || '')) {
+        if (r.mehsul_adi) knownKiloNames.add(r.mehsul_adi.trim().toLowerCase());
+      }
+    });
+
     SALES = (data || []).map(r => {
       const dateObj = new Date(r.tarix);
       const isDateValid = !isNaN(dateObj.getTime());
@@ -2354,6 +2477,12 @@ async function fetchData(showLoading = true) {
       const maya   = parseFloat(r.maya_deyeri) || 0;
       const qazanc = (r.qazanc !== undefined && r.qazanc !== null) ? parseFloat(r.qazanc) : (mebleg - maya);
       const qty    = parseFloat(r.say) || 1;
+
+      const nameClean = (r.mehsul_adi || '').trim().toLowerCase();
+      const isKilo = (r.is_kilo === true || r.is_kilo === 1 || r.is_kilo === 'true' || r.vahid === 'kg' || r.vahid === 'kq')
+        || (Math.abs(qty - Math.round(qty)) > 0.0001)
+        || /\b(kg|kq|kilo|kiloqram|çəki|ceki)\b/i.test(nameClean)
+        || knownKiloNames.has(nameClean);
 
       const tip = (r.emeliyyat_tipi || 'SATIŞ').toUpperCase();
       const isQaytarma = tip === 'QAYTARILMA';
@@ -2370,6 +2499,7 @@ async function fetchData(showLoading = true) {
         saat: sStr,
         mal: r.mehsul_adi || 'Naməlum Məhsul',
         qty,
+        isKilo,
         maya,
         satis: mebleg,
         qazanc,
@@ -2408,10 +2538,18 @@ function setupRealtime() {
           const isSale = (rec.emeliyyat_tipi || '').toUpperCase() !== 'QAYTARILMA';
           playChime(isSale);
 
+          const rSay = parseFloat(rec.say) || 1;
+          const rName = (rec.mehsul_adi || '').trim().toLowerCase();
+          const rIsKilo = (rec.is_kilo === true || rec.is_kilo === 1 || rec.is_kilo === 'true' || rec.vahid === 'kg' || rec.vahid === 'kq')
+            || (Math.abs(rSay - Math.round(rSay)) > 0.0001)
+            || /\b(kg|kq|kilo|kiloqram|çəki|ceki)\b/i.test(rName);
+
+          const unitStr = rIsKilo ? 'kq' : 'ədəd';
           const title = isSale ? `🛒 Yeni Satış: ${parseFloat(rec.mebleg || 0).toFixed(2)} ₼` : `🔄 Qaytarılma: ${parseFloat(rec.mebleg || 0).toFixed(2)} ₼`;
-          const msg = `${rec.mehsul_adi || 'Məhsul'} (${rec.say || 1} ədəd)`;
-          showToast(title, msg, isSale);
-          addNotification(title, msg, isSale);
+          const msg = `${rec.mehsul_adi || 'Məhsul'} (${rSay} ${unitStr})`;
+          const recDate = rec.tarix ? new Date(rec.tarix) : new Date();
+          showToast(title, msg, isSale, recDate);
+          addNotification(title, msg, isSale, recDate);
         } else if (payload.eventType === 'DELETE') {
           playChime(false);
           showToast("🗑️ Əməliyyat Silindi", "Bir qeyd bazadan silindi", false);
@@ -2482,12 +2620,18 @@ function animateNum(el, to, fmt, dur = 600){
 function renderStats(rows){
   let total = 0, maya = 0, qazanc = 0, negd = 0, nisye = 0, borc = 0;
   let count = 0;
+  let totalEded = 0, totalKq = 0;
 
   rows.forEach(s => {
     if (s.isQaytarma) {
       total  -= s.satis;
       maya   -= s.maya;
       qazanc -= s.qazanc;
+      if (s.isKilo) {
+        totalKq -= s.qty;
+      } else {
+        totalEded -= s.qty;
+      }
     } else {
       total  += s.satis;
       maya   += s.maya;
@@ -2498,9 +2642,17 @@ function renderStats(rows){
         nisye += s.satis;
         borc  += (s.satis - s.odenilen);
       }
+      if (s.isKilo) {
+        totalKq += s.qty;
+      } else {
+        totalEded += s.qty;
+      }
       count++;
     }
   });
+
+  totalEded = Math.max(0, totalEded);
+  totalKq   = Math.max(0, totalKq);
 
   const marja   = total > 0 ? (qazanc / total) * 100 : 0;
   const negdPct = (negd + nisye) > 0 ? (negd / (negd + nisye)) * 100 : 0;
@@ -2511,14 +2663,28 @@ function renderStats(rows){
   animateNum($('stQazanc'), qazanc, money);
   animateNum($('stNegd'),   negd,   money);
   animateNum($('stNisye'),  nisye,  money);
-  animateNum($('stAvg'),    count ? total / count : 0, money);
+
+  // Miqdar (Ədəd) və Çəki (Kq) ayrı-ayrı animasiyası
+  if ($('stEdedVal')) animateNum($('stEdedVal'), totalEded, n => nf0.format(Math.round(n)));
+  if ($('stKiloVal')) animateNum($('stKiloVal'), totalKq, n => {
+    const val = Number(n) || 0;
+    if (val === 0) return '0';
+    if (val % 1 === 0) return nf0.format(Math.round(val));
+    const r2 = Math.round(val * 100) / 100;
+    return Math.abs(val - r2) > 0.001 ? val.toFixed(3) : val.toFixed(2);
+  });
 
   $('stCount').textContent   = nf0.format(rows.length) + ' əməliyyat';
   $('stMayaPct').textContent = (total > 0 ? (maya / total) * 100 : 0).toFixed(1) + '%';
   $('stMarja').textContent   = marja.toFixed(1) + '% marja';
   $('stNegdPct').textContent = negdPct.toFixed(1) + '% pay';
   $('stBorc').textContent    = money0(borc) + ' borc';
-  $('stAvgSub').textContent  = count + ' satış üzrə ortalama';
+
+  if ($('stEdedSub')) $('stEdedSub').textContent = nf0.format(totalEded) + ' ədəd';
+  if ($('stKiloSub')) {
+    const kgStr = totalKq % 1 === 0 ? nf0.format(totalKq) : (Math.abs(totalKq - Math.round(totalKq * 100) / 100) > 0.001 ? totalKq.toFixed(3) : totalKq.toFixed(2));
+    $('stKiloSub').textContent = kgStr + ' kq';
+  }
 
   const donut = $('donut');
   if ((negd + nisye) > 0) {
@@ -2647,10 +2813,11 @@ function renderTop(rows){
   const map = new Map();
   rows.forEach(s => {
     if (s.isQaytarma) return;
-    const o = map.get(s.mal) || { qazanc:0, satis:0, qty:0 };
+    const o = map.get(s.mal) || { qazanc:0, satis:0, qty:0, isKilo:s.isKilo };
     o.qazanc += s.qazanc;
     o.satis  += s.satis;
     o.qty    += s.qty;
+    o.isKilo  = s.isKilo;
     map.set(s.mal, o);
   });
 
@@ -2665,16 +2832,18 @@ function renderTop(rows){
   }
 
   const maxQ = list[0][1].qazanc || 1;
-  box.innerHTML = list.map(([ad, v]) => `
+  box.innerHTML = list.map(([ad, v]) => {
+    const qtyFormatted = v.isKilo ? (v.qty % 1 === 0 ? v.qty : v.qty.toFixed(2)) + ' kq' : v.qty + ' ədəd';
+    return `
     <div class="tp">
       <div class="tp-top">
         <span class="tp-name">${ad}</span>
         <span class="tp-val">${money0(v.qazanc)}</span>
       </div>
       <div class="tp-track"><div class="tp-fill" data-w="${Math.max((v.qazanc / maxQ) * 100, 3)}"></div></div>
-      <div style="font-size:10.5px;color:#64708a">${v.qty} ədəd • satış ${money0(v.satis)}</div>
-    </div>
-  `).join('');
+      <div style="font-size:10.5px;color:#64708a">${qtyFormatted} • satış ${money0(v.satis)}</div>
+    </div>`;
+  }).join('');
 
   requestAnimationFrame(() => {
     box.querySelectorAll('.tp-fill').forEach(f => { f.style.width = f.dataset.w + '%'; });
@@ -2743,15 +2912,19 @@ function renderTable(rows){
       <tr class="${s.nov}">
         <td data-label="Tarix">
           <div class="td-tarix">
-            <span class="d">${s.tarix.split('-').reverse().join('.')}</span>
-            <span class="t">${s.saat} • ${s.id}</span>
+            <div class="td-dt-row">
+              <span class="d">${s.tarix.split('-').reverse().join('.')}</span>
+              <span class="t-sep">•</span>
+              <span class="t">${s.saat}</span>
+            </div>
+            <span class="tid">${s.id}</span>
           </div>
         </td>
         <td data-label="Müştəri">${musteriCell}</td>
         <td data-label="Məhsul">
           <div class="mal-cell">
             <span class="mn">${s.mal}</span>
-            <span class="mq">${s.qty} ədəd</span>
+            <span class="mq">${s.qty} ${s.isKilo ? 'kq' : 'ədəd'}</span>
           </div>
         </td>
         <td class="num mut" data-label="Maya">${isQ ? '-' : ''}${money(s.maya)}</td>
@@ -2869,20 +3042,23 @@ function exportToExcel() {
   const startDate = state.from || 'Başlanğıc';
   const endDate = state.to || 'Son';
 
-  let toplamSatis = 0, toplamMaya = 0, toplamQazanc = 0, toplamMiqdar = 0;
+  let toplamSatis = 0, toplamMaya = 0, toplamQazanc = 0, toplamEded = 0, toplamKq = 0;
   filtered.forEach(s => {
     if (s.isQaytarma) {
       toplamSatis -= s.satis;
       toplamMaya -= s.maya;
       toplamQazanc -= s.qazanc;
-      toplamMiqdar -= s.qty;
+      if (s.isKilo) toplamKq -= s.qty; else toplamEded -= s.qty;
     } else {
       toplamSatis += s.satis;
       toplamMaya += s.maya;
       toplamQazanc += s.qazanc;
-      toplamMiqdar += s.qty;
+      if (s.isKilo) toplamKq += s.qty; else toplamEded += s.qty;
     }
   });
+
+  toplamEded = Math.max(0, toplamEded);
+  toplamKq   = Math.max(0, Math.round(toplamKq * 1000) / 1000);
 
   const sheetData = [];
   sheetData.push([`Hesabat Dövrü: ${startDate} — ${endDate}`]);
@@ -2890,18 +3066,19 @@ function exportToExcel() {
   sheetData.push([`Toplam Satış: ${toplamSatis.toFixed(2)}`]);
   sheetData.push([`Toplam Maya: ${toplamMaya.toFixed(2)}`]);
   sheetData.push([`Toplam Gəlir: ${toplamQazanc.toFixed(2)}`]);
-  sheetData.push([`Toplam Miqdar: ${toplamMiqdar.toFixed(2)}`]);
+  sheetData.push([`Toplam Miqdar: ${toplamEded} ədəd / ${toplamKq % 1 === 0 ? toplamKq : toplamKq.toFixed(2)} kq`]);
   sheetData.push([]);
 
   sheetData.push(["Tarix", "Saat", "Məhsul", "Miqdar", "Satış", "Maya", "Gəlir", "Ödəniş", "Müştəri"]);
 
   filtered.forEach(s => {
     const isQ = s.isQaytarma;
+    const unitLabel = s.isKilo ? 'kq' : 'əd';
     sheetData.push([
       s.tarix,
       s.saat,
       s.mal,
-      isQ ? `${s.qty} (Qaytarma)` : s.qty,
+      isQ ? `${s.qty} ${unitLabel} (Qaytarma)` : `${s.qty} ${unitLabel}`,
       parseFloat((isQ ? -s.satis : s.satis).toFixed(2)),
       parseFloat((isQ ? -s.maya : s.maya).toFixed(2)),
       parseFloat((isQ ? -s.qazanc : s.qazanc).toFixed(2)),
