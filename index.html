@@ -385,6 +385,51 @@ input::placeholder,textarea::placeholder{color:#5a6580}
 .tp-fill{height:100%;border-radius:99px;width:0;transition:width .85s cubic-bezier(.2,.85,.25,1);
   background:linear-gradient(90deg,#22d3ee,#a855f7)}
 
+#slideTop{
+  max-height:340px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,.15) transparent;
+}
+#slideTop::-webkit-scrollbar{width:5px}
+#slideTop::-webkit-scrollbar-track{background:transparent}
+#slideTop::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}
+body.light-theme #slideTop::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15)}
+
+.btn-top-more{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  background:rgba(34,211,238,.08);
+  border:1px solid rgba(34,211,238,.28);
+  color:#22d3ee;
+  padding:7px 14px;
+  border-radius:10px;
+  font-size:11.5px;
+  font-weight:700;
+  font-family:inherit;
+  cursor:pointer;
+  transition:all .2s;
+  width:100%;
+}
+.btn-top-more:hover{
+  background:rgba(34,211,238,.18);
+  border-color:rgba(34,211,238,.5);
+  color:#fff;
+  transform:translateY(-1px);
+}
+body.light-theme .btn-top-more{
+  background:rgba(2,132,199,.08);
+  border-color:rgba(2,132,199,.25);
+  color:#0284c7;
+}
+body.light-theme .btn-top-more:hover{
+  background:#0284c7;
+  color:#fff;
+}
+
 /* ============ TABLE ============ */
 .table-panel{overflow:hidden}
 .table-title-grp{display:flex;flex-direction:column;flex:0 0 auto}
@@ -3248,8 +3293,20 @@ function moveTip(e){
 function hideTip(){ tip.classList.remove('on'); }
 
 /* =====================================================================
-   12) TOP QAZANCLI MƏHSULLAR
+   12) TOP QAZANCLI MƏHSULLAR (Səhifələmə & Daha Çox Göstər ilə)
    ===================================================================== */
+let topProductsLimit = 5;
+
+function loadMoreTopProducts(){
+  topProductsLimit += 5;
+  renderTop(getFiltered());
+}
+
+function resetTopLimit(){
+  topProductsLimit = 5;
+  renderTop(getFiltered());
+}
+
 function renderTop(rows){
   const map = new Map();
   rows.forEach(s => {
@@ -3262,23 +3319,24 @@ function renderTop(rows){
     map.set(s.mal, o);
   });
 
-  const list = [...map.entries()]
-    .sort((a, b) => b[1].qazanc - a[1].qazanc)
-    .slice(0, 5);
+  const allSorted = [...map.entries()]
+    .sort((a, b) => b[1].qazanc - a[1].qazanc);
 
   const box = $('topList');
-  if (!list.length) {
-    box.innerHTML = '<div style="color:#5f6b87;font-size:12.5px;padding:8px 0">Məlumat yoxdur</div>';
+  if (!allSorted.length) {
+    box.innerHTML = '<div style="color:#5f6b87;font-size:12.5px;padding:8px 0;text-align:center">Məlumat yoxdur</div>';
     return;
   }
 
-  const maxQ = list[0][1].qazanc || 1;
-  box.innerHTML = list.map(([ad, v]) => {
+  const visibleList = allSorted.slice(0, topProductsLimit);
+  const maxQ = allSorted[0][1].qazanc || 1;
+
+  let html = visibleList.map(([ad, v], idx) => {
     const qtyFormatted = v.isKilo ? (v.qty % 1 === 0 ? v.qty : v.qty.toFixed(2)) + ' kq' : v.qty + ' ədəd';
     return `
     <div class="tp">
       <div class="tp-top">
-        <span class="tp-name">${ad}</span>
+        <span class="tp-name"><span style="color:#8892ab;font-size:11px;margin-right:5px;font-weight:700">#${idx + 1}</span>${escapeHtml(ad)}</span>
         <span class="tp-val">${money0(v.qazanc)}</span>
       </div>
       <div class="tp-track"><div class="tp-fill" data-w="${Math.max((v.qazanc / maxQ) * 100, 3)}"></div></div>
@@ -3286,9 +3344,39 @@ function renderTop(rows){
     </div>`;
   }).join('');
 
+  if (allSorted.length > 5) {
+    if (topProductsLimit < allSorted.length) {
+      const nextCount = Math.min(5, allSorted.length - topProductsLimit);
+      html += `
+        <div style="text-align:center;padding-top:6px">
+          <button type="button" class="btn-top-more" onclick="loadMoreTopProducts()">
+            <i class="fa-solid fa-angles-down"></i>
+            <span>Daha çox göstər (+${nextCount})</span>
+            <small style="opacity:.7;margin-left:4px">(${visibleList.length} / ${allSorted.length})</small>
+          </button>
+        </div>`;
+    } else {
+      html += `
+        <div style="text-align:center;padding-top:6px">
+          <button type="button" class="btn-top-more" onclick="resetTopLimit()" style="border-color:rgba(255,255,255,.15);color:#94a3b8">
+            <i class="fa-solid fa-angles-up"></i>
+            <span>İlk 5-ə qayıt</span>
+            <small style="opacity:.7;margin-left:4px">(Cəmi ${allSorted.length} məhsul)</small>
+          </button>
+        </div>`;
+    }
+  }
+
+  box.innerHTML = html;
+
   requestAnimationFrame(() => {
     box.querySelectorAll('.tp-fill').forEach(f => { f.style.width = f.dataset.w + '%'; });
   });
+
+  const subText = $('sliderSubtitle');
+  if (subText && currentSlide === 1) {
+    subText.textContent = `Səhifə 2 / 2 • Top ${visibleList.length} Məhsul`;
+  }
 }
 
 /* =====================================================================
@@ -3318,6 +3406,7 @@ function resetPagination() {
   if (tableStep !== 'all') {
     tableVisibleLimit = typeof tableStep === 'number' ? tableStep : 25;
   }
+  topProductsLimit = 5;
 }
 
 function loadMoreRows() {
@@ -3918,7 +4007,7 @@ function goToSlide(idx) {
   if (subText) {
     subText.textContent = currentSlide === 0 
       ? 'Səhifə 1 / 2 • Nəğd və Nisyə payı' 
-      : 'Səhifə 2 / 2 • Top 5 Məhsul';
+      : `Səhifə 2 / 2 • Top ${topProductsLimit} Məhsul`;
   }
 
   dots.forEach((dot, i) => {
