@@ -547,6 +547,7 @@ function verifyPassword() {
     document.documentElement.classList.add('is-authenticated');
     if (errorEl) errorEl.style.display = 'none';
     showToast("🔓 Uğurlu Giriş", "Xoş gəldiniz! Məlumatlar yüklənir...", true);
+    if (isPwa()) enterFullScreen();
     initApp();
   } else {
     if (errorEl) errorEl.style.display = 'block';
@@ -2906,6 +2907,7 @@ function startApplication() {
   const first = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
   setRange(iso(first), iso(TODAY), '00:00', '23:59');
   checkAuth();
+  initPwaFullscreen();
 }
 
 if (document.readyState === 'loading') {
@@ -2975,23 +2977,46 @@ window.addEventListener('scroll', onWindowScrollThrottled, { passive: true });
 /* =====================================================================
    29) TAM EKRAN (FULLSCREEN), MOBİL NAV VƏ PWA DƏSTƏYİ
    ===================================================================== */
-function toggleFullScreen() {
+function isPwa() {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         window.matchMedia('(display-mode: fullscreen)').matches ||
+         window.matchMedia('(display-mode: minimal-ui)').matches ||
+         window.navigator.standalone === true ||
+         document.referrer.includes('android-app://');
+}
+
+function isCurrentlyFullscreen() {
+  return !!(document.fullscreenElement ||
+            document.webkitFullscreenElement ||
+            document.mozFullScreenElement ||
+            document.msFullscreenElement ||
+            window.matchMedia('(display-mode: fullscreen)').matches);
+}
+
+function enterFullScreen() {
+  const el = document.documentElement;
   if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
-    const el = document.documentElement;
-    if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
-    else if (el.msRequestFullscreen) el.msRequestFullscreen();
+    if (el.requestFullscreen) return el.requestFullscreen().catch(() => {});
+    if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+    if (el.mozRequestFullScreen) return el.mozRequestFullScreen();
+    if (el.msRequestFullscreen) return el.msRequestFullscreen();
+  }
+}
+
+function toggleFullScreen() {
+  if (!isCurrentlyFullscreen()) {
+    enterFullScreen();
   } else {
     if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
     else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
     else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
     else if (document.msExitFullscreen) document.msExitFullscreen();
   }
+  setTimeout(updateFullscreenIcon, 150);
 }
 
 function updateFullscreenIcon() {
-  const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+  const isFull = isCurrentlyFullscreen() || isPwa();
   const ico = $('fullscreenIcon');
   const btn = $('fullscreenBtn');
   if (ico) {
@@ -3003,10 +3028,36 @@ function updateFullscreenIcon() {
   }
 }
 
+function initPwaFullscreen() {
+  if (isPwa()) {
+    // 1. Birbaşa tam ekrana cəhd edirik (PWA runtime icazə verirsə)
+    enterFullScreen();
+    updateFullscreenIcon();
+
+    // 2. Brauzerin "user gesture" təhlükəsizliyinə görə istifadəçinin ekrana ilk toxunuşunda tam ekranı aktivləşdiririk
+    const onFirstUserAction = () => {
+      enterFullScreen();
+      updateFullscreenIcon();
+    };
+
+    window.addEventListener('pointerdown', onFirstUserAction, { once: true, passive: true });
+    window.addEventListener('touchstart', onFirstUserAction, { once: true, passive: true });
+    window.addEventListener('click', onFirstUserAction, { once: true });
+  } else {
+    updateFullscreenIcon();
+  }
+}
+
 document.addEventListener('fullscreenchange', updateFullscreenIcon);
 document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
 document.addEventListener('mozfullscreenchange', updateFullscreenIcon);
 document.addEventListener('MSFullscreenChange', updateFullscreenIcon);
+if (window.matchMedia) {
+  try {
+    window.matchMedia('(display-mode: fullscreen)').addEventListener('change', updateFullscreenIcon);
+    window.matchMedia('(display-mode: standalone)').addEventListener('change', updateFullscreenIcon);
+  } catch (e) {}
+}
 
 function scrollToSection(secId) {
   const el = $(secId) || document.querySelector('.' + secId);

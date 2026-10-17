@@ -3,7 +3,7 @@
    Versiya: 2.1.0 (Modular & High-Speed Mobile Cache)
    ===================================================================== */
 
-const CACHE_NAME = 'papatya-kassa-cache-v2-3-0';
+const CACHE_NAME = 'papatya-kassa-cache-v2-3-1';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -86,6 +86,8 @@ self.addEventListener('fetch', event => {
             manifest.name = finalName;
             manifest.short_name = finalName.length > 15 ? finalName.substring(0, 15) : finalName;
           }
+          manifest.display = 'fullscreen';
+          manifest.display_override = ['fullscreen', 'standalone', 'minimal-ui', 'browser'];
           return new Response(JSON.stringify(manifest), {
             headers: {
               'Content-Type': 'application/manifest+json; charset=utf-8',

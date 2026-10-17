@@ -2492,6 +2492,16 @@ function initApp() {
   syncStoreSelectUI();
   updateStoreTitle();
 
+  if (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches || window.navigator.standalone === true) {
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+    if (req && !document.fullscreenElement) {
+      req.call(el).catch(() => {});
+      window.addEventListener('click', () => { req.call(el).catch(() => {}); }, { once: true });
+      window.addEventListener('touchstart', () => { req.call(el).catch(() => {}); }, { once: true, passive: true });
+    }
+  }
+
   const url = getActiveSupabaseUrl();
   const key = getActiveSupabaseKey();
 
