@@ -76,13 +76,57 @@ function getActiveStoreName() {
   return 'Papatya 2';
 }
 
+function getActivePwaName() {
+  const pid = getActiveProfileId();
+  const profilePwa = localStorage.getItem(`kassa_pwa_name_${pid}`);
+  if (profilePwa && profilePwa.trim()) return profilePwa.trim();
+
+  const saved = localStorage.getItem('kassa_pwa_name');
+  if (saved && saved.trim()) return saved.trim();
+
+  const storeName = getActiveStoreName();
+  return storeName ? `${storeName} Kassa` : 'Papatya Kassa';
+}
+
+function updateManifest() {
+  const pwaName = getActivePwaName();
+  const shortName = pwaName.length > 15 ? pwaName.substring(0, 15) : pwaName;
+
+  // 1. Browser Title & Apple PWA Title
+  document.title = `${pwaName} — Satış Paneli`;
+  let appleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+  if (!appleMeta) {
+    appleMeta = document.createElement('meta');
+    appleMeta.name = 'apple-mobile-web-app-title';
+    document.head.appendChild(appleMeta);
+  }
+  appleMeta.content = shortName;
+
+  // 2. Service Worker mesajı (Dinamik PWA manifest)
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    try {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SET_PWA_NAME',
+        name: pwaName,
+        shortName: shortName
+      });
+    } catch (e) {}
+  }
+
+  // 3. Manifest linkini dinamik parametr ilə yeniləyirik
+  const manifestLink = $('manifestLink') || document.querySelector('link[rel="manifest"]');
+  if (manifestLink) {
+    manifestLink.href = `./manifest.json?pwa_name=${encodeURIComponent(pwaName)}&t=${Date.now()}`;
+  }
+}
+
 function updateStoreTitle() {
   const name = getActiveStoreName();
   const titleEl = $('appStoreTitle');
   if (titleEl) titleEl.textContent = `${name} — Satış Paneli`;
   const loginTitle = $('loginStoreTitle');
   if (loginTitle) loginTitle.textContent = name;
-  document.title = `${name} — Satış Paneli`;
+  updateManifest();
 }
 
 function syncStoreSelectUI() {
@@ -133,6 +177,10 @@ function onHeaderStoreChange(val) {
 function selectProfileInModal(profileId) {
   if (STORE_PROFILES[profileId]) {
     $('settingStoreName').value = STORE_PROFILES[profileId].name;
+    if ($('settingPwaName')) {
+      const savedProfPwa = localStorage.getItem(`kassa_pwa_name_${profileId}`);
+      $('settingPwaName').value = savedProfPwa || `${STORE_PROFILES[profileId].name} Kassa`;
+    }
     $('settingSupabaseUrl').value = STORE_PROFILES[profileId].url;
     $('settingSupabaseKey').value = STORE_PROFILES[profileId].key;
   }
@@ -543,6 +591,7 @@ function logout() {
 function openSettingsModal() {
   syncStoreSelectUI();
   $('settingStoreName').value = getActiveStoreName();
+  if ($('settingPwaName')) $('settingPwaName').value = getActivePwaName();
   $('settingSupabaseUrl').value = getActiveSupabaseUrl();
   $('settingSupabaseKey').value = getActiveSupabaseKey();
   $('settingPassword').value = getActivePassword();
@@ -561,6 +610,7 @@ function closeSettingsModal() {
 function resetDefaultCredentials() {
   if (confirm("Standart parametrlərə (Abur Çubur) qaytarmaq istəyirsiniz?")) {
     selectProfileInModal('aburcubur');
+    if ($('settingPwaName')) $('settingPwaName').value = 'Abur Çubur Kassa';
     $('settingPassword').value = DEFAULT_APP_PASSWORD;
   }
 }
@@ -630,6 +680,7 @@ async function testSupabaseInHtml() {
 
 function saveSettingsFromModal() {
   const storeName = $('settingStoreName').value.trim() || 'Mağaza';
+  const pwaName = $('settingPwaName') ? $('settingPwaName').value.trim() : '';
   const url = $('settingSupabaseUrl').value.trim().replace(/\/+$/, '');
   const key = $('settingSupabaseKey').value.trim();
   const pwd = $('settingPassword').value.trim() || DEFAULT_APP_PASSWORD;
@@ -644,6 +695,13 @@ function saveSettingsFromModal() {
 
   localStorage.setItem('kassa_active_profile', matchedProfile);
   localStorage.setItem('kassa_store_name', storeName);
+  if (pwaName) {
+    localStorage.setItem('kassa_pwa_name', pwaName);
+    localStorage.setItem(`kassa_pwa_name_${matchedProfile}`, pwaName);
+  } else {
+    localStorage.removeItem('kassa_pwa_name');
+    localStorage.removeItem(`kassa_pwa_name_${matchedProfile}`);
+  }
   localStorage.setItem('kassa_supabase_url', url);
   localStorage.setItem('kassa_supabase_key', key);
   localStorage.setItem('kassa_custom_password', pwd);
