@@ -136,6 +136,8 @@ function updateStoreTitle() {
   if (titleEl) titleEl.textContent = `${name} — Satış Paneli`;
   const loginTitle = $('loginStoreTitle');
   if (loginTitle) loginTitle.textContent = name;
+  const storeBadge = $('authStoreName');
+  if (storeBadge) storeBadge.textContent = name;
   updateManifest();
 }
 
@@ -585,7 +587,7 @@ async function checkAuth() {
 async function verifyPassword() {
   const pInput = $('passwordInput');
   const emailInput = $('authEmailInput');
-  const entered = pInput ? pInput.value.trim() : '';
+  const entered = (pInput ? pInput.value : '').trim();
   const email = (emailInput ? emailInput.value : getActiveStoreEmail()).trim();
   const errorEl = $('authError');
   const box = $('authBox');
@@ -593,16 +595,22 @@ async function verifyPassword() {
   const rememberChk = $('rememberPasswordChk');
   const shouldRemember = rememberChk ? rememberChk.checked : true;
 
+  if (errorEl) {
+    errorEl.style.display = 'none';
+    errorEl.innerHTML = '';
+  }
+
   if (!entered) {
     if (errorEl) {
       errorEl.style.display = 'block';
-      errorEl.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Şifrəni daxil edin!';
+      errorEl.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Zəhmət olmasa şifrəni daxil edin!';
     }
+    if (pInput) pInput.focus();
     return;
   }
 
   const btn = document.querySelector('#authScreen .cyber-btn-primary');
-  const origBtnHtml = btn ? btn.innerHTML : '';
+  const origBtnHtml = '<span>Daxil Ol</span> <i class="fa-solid fa-arrow-right"></i>';
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Yoxlanılır...';
@@ -610,75 +618,103 @@ async function verifyPassword() {
 
   let authSuccess = false;
   let authType = 'local';
-  const client = getSupabaseClient();
+  let serverErrorMessage = '';
 
-  // 1. Supabase Server Auth yoxlanışı (İstifadəçinin daxil etdiyi İSTƏNİLƏN email və şifrə ilə)
-  if (client && client.auth && email) {
-    try {
-      const { data, error } = await client.auth.signInWithPassword({
-        email: email,
-        password: entered
-      });
-      if (!error && data?.session) {
-        authSuccess = true;
-        authType = 'supabase_auth';
-      } else if (error) {
-        console.warn("Supabase Auth xətası:", error.message);
+  try {
+    const client = getSupabaseClient();
+
+    // 1. Supabase Server Auth (Email daxil edilibsə)
+    if (client && client.auth && email) {
+      try {
+        // 5 saniyəlik timeout qoruyucusu (heç vaxt fırlanıb ilişib qala bilməz)
+        const authPromise = client.auth.signInWithPassword({
+          email: email,
+          password: entered
+        });
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Supabase serveri cavab vermədi (Timeout)")), 5000)
+        );
+
+        const res = await Promise.race([authPromise, timeoutPromise]);
+        const data = res ? res.data : null;
+        const error = res ? res.error : null;
+
+        if (!error && data && data.session) {
+          authSuccess = true;
+          authType = 'supabase_auth';
+        } else if (error) {
+          console.warn("Supabase Auth cavabı:", error);
+          if (error.message === 'Invalid login credentials') {
+            serverErrorMessage = 'Email və ya şifrə yanlışdır!';
+          } else if (error.message.includes('Email not confirmed')) {
+            serverErrorMessage = 'Supabase: Email təsdiqlənməyib!';
+          } else {
+            serverErrorMessage = error.message;
+          }
+        }
+      } catch (authErr) {
+        console.warn("Supabase Auth sorğu xətası:", authErr);
+        serverErrorMessage = authErr.message;
       }
-    } catch (e) {
-      console.warn("Supabase Auth sorğusu xətası:", e);
     }
-  }
 
-  // 2. Əgər Supabase Auth aktiv deyilsə və ya tapılmadısa, lokal şifrə ehtiyat yoxlanışı
-  if (!authSuccess && (entered === currentPassword || entered === DEFAULT_APP_PASSWORD)) {
-    authSuccess = true;
-    authType = 'local_fallback';
-  }
-
-  if (btn) {
-    btn.disabled = false;
-    btn.innerHTML = origBtnHtml;
-  }
-
-  if (authSuccess) {
-    localStorage.setItem('kassa_auth_token', entered);
-    localStorage.setItem('kassa_auth_mode', authType);
-    if (email) {
-      localStorage.setItem('kassa_auth_email', email);
+    // 2. Lokal ehtiyat şifrə yoxlanışı (Əgər Supabase Auth ilə girmədisə, köhnə şifrə ilə aça bilsin)
+    if (!authSuccess && (entered === currentPassword || entered === DEFAULT_APP_PASSWORD)) {
+      authSuccess = true;
+      authType = 'local_fallback';
     }
-    if (shouldRemember) {
-      localStorage.setItem('kassa_remember_login', 'true');
+
+    if (authSuccess) {
+      localStorage.setItem('kassa_auth_token', entered);
+      localStorage.setItem('kassa_auth_mode', authType);
+      if (email) {
+        localStorage.setItem('kassa_auth_email', email);
+      }
+      if (shouldRemember) {
+        localStorage.setItem('kassa_remember_login', 'true');
+      } else {
+        localStorage.removeItem('kassa_remember_login');
+      }
+
+      const authScr = $('authScreen');
+      if (authScr) authScr.classList.add('hidden');
+      if (pInput) {
+        pInput.blur();
+        pInput.disabled = true;
+      }
+      document.documentElement.classList.add('is-authenticated');
+
+      if (authType === 'supabase_auth') {
+        showToast("🛡️ Supabase Server Auth", "Server təsdiqi ilə təhlükəsiz giriş edildi!", true);
+      } else {
+        showToast("🔓 Uğurlu Giriş", "Xoş gəldiniz! Məlumatlar yüklənir...", true);
+      }
+
+      if (isPwa()) enterFullScreen();
+      initApp();
     } else {
-      localStorage.removeItem('kassa_remember_login');
+      if (errorEl) {
+        errorEl.style.display = 'block';
+        const displayErr = serverErrorMessage || 'Şifrə və ya email yanlışdır! Yenidən yoxlayın.';
+        errorEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${displayErr}`;
+      }
+      if (box) {
+        box.classList.remove('shake');
+        void box.offsetWidth;
+        box.classList.add('shake');
+      }
     }
-
-    const authScr = $('authScreen');
-    if (authScr) authScr.classList.add('hidden');
-    if (pInput) {
-      pInput.blur();
-      pInput.disabled = true;
-    }
-    document.documentElement.classList.add('is-authenticated');
-    if (errorEl) errorEl.style.display = 'none';
-
-    if (authType === 'supabase_auth') {
-      showToast("🛡️ Supabase Server Auth", "Server təsdiqi ilə təhlükəsiz giriş edildi!", true);
-    } else {
-      showToast("🔓 Uğurlu Giriş", "Xoş gəldiniz! Məlumatlar yüklənir...", true);
-    }
-
-    if (isPwa()) enterFullScreen();
-    initApp();
-  } else {
+  } catch (err) {
+    console.error("verifyPassword ümumi xəta:", err);
     if (errorEl) {
       errorEl.style.display = 'block';
-      errorEl.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Şifrə və ya email yanlışdır! Yenidən yoxlayın.';
+      errorEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Xəta: ${err.message || 'Giriş uğursuz oldu'}`;
     }
-    if (box) {
-      box.classList.remove('shake');
-      void box.offsetWidth;
-      box.classList.add('shake');
+  } finally {
+    // Düymə HƏR BİR HALDA açılır və ilkin halına qayıdır (donub qala bilməz)
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origBtnHtml;
     }
   }
 }
@@ -750,10 +786,42 @@ async function logout(skipConfirm = false) {
   showToast("🚪 Hesabdan Çıxış Edildi", "Yeni email və şifrənizi daxil edə bilərsiniz.", true);
 }
 
+function toggleSettingsKeyVisibility() {
+  const input = $('settingSupabaseKey');
+  const icon = $('keyToggleIcon');
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (icon) icon.className = 'fa-solid fa-eye-slash';
+  } else {
+    input.type = 'password';
+    if (icon) icon.className = 'fa-solid fa-eye';
+  }
+}
+
+function toggleSettingsPwdVisibility() {
+  const input = $('settingPassword');
+  const icon = $('settingPwdToggleIcon');
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (icon) icon.className = 'fa-solid fa-eye-slash';
+  } else {
+    input.type = 'password';
+    if (icon) icon.className = 'fa-solid fa-eye';
+  }
+}
+
 /* =====================================================================
    6) AYARLAR MODALI VƏ SUPABASE TESTİ
    ===================================================================== */
 function openSettingsModal() {
+  // Təhlükəsizlik: Yalnız daxil olmuş istifadəçi ayarlara baxa bilər
+  if (!document.documentElement.classList.contains('is-authenticated')) {
+    showToast("🔒 Giriş Tələb Olunur", "Təhlükəsizlik səbəbilə ayarlara yalnız giriş etdikdən sonra baxa bilərsiniz!", false);
+    return;
+  }
+
   syncStoreSelectUI();
   $('settingStoreName').value = getActiveStoreName();
   if ($('settingPwaName')) $('settingPwaName').value = getActivePwaName();
