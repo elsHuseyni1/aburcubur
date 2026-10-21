@@ -21,9 +21,11 @@ const STORE_PROFILES = {
 const DEFAULT_APP_PASSWORD = "Elsen0123456789-";
 
 function getActiveStoreEmail() {
+  const custom = localStorage.getItem('kassa_auth_email');
+  if (custom && custom.trim()) return custom.trim();
   const pid = getActiveProfileId();
   if (STORE_PROFILES[pid] && STORE_PROFILES[pid].email) return STORE_PROFILES[pid].email;
-  return localStorage.getItem('kassa_auth_email') || 'elsen.huseynov2015@yandex.ru';
+  return '';
 }
 
 function getActiveProfileId() {
@@ -522,8 +524,22 @@ function getSupabaseClient() {
 async function checkAuth() {
   updateStoreTitle();
   const emailInput = $('authEmailInput');
-  if (emailInput && !emailInput.value) {
-    emailInput.value = getActiveStoreEmail();
+  const savedEmail = getActiveStoreEmail();
+  if (emailInput && !emailInput.value && savedEmail) {
+    emailInput.value = savedEmail;
+  }
+
+  const savedAuth = localStorage.getItem('kassa_auth_token');
+  const isRemembered = localStorage.getItem('kassa_remember_login') === 'true';
+
+  // Əgər istifadəçi çıxış edibsə və ya yadda saxlamayıbsa, mütləq giriş ekranını göstər
+  if (!savedAuth) {
+    document.documentElement.classList.remove('is-authenticated');
+    const authScr = $('authScreen');
+    if (authScr) authScr.classList.remove('hidden');
+    const pInput = $('passwordInput');
+    if (pInput) pInput.disabled = false;
+    return;
   }
 
   const client = getSupabaseClient();
@@ -541,11 +557,9 @@ async function checkAuth() {
   }
 
   const currentPassword = getActivePassword();
-  const savedAuth = localStorage.getItem('kassa_auth_token');
-  const isRemembered = localStorage.getItem('kassa_remember_login') === 'true';
 
-  // Əgər Supabase Auth aktivdirsə və ya lokal şifrə yadda saxlanılıbsa, giriş ekranını gizlət və birbaşa aç
-  if (hasValidSession || ((isRemembered && (savedAuth === currentPassword || savedAuth)) || savedAuth === currentPassword)) {
+  // Əgər Supabase Auth aktivdirsə və ya lokal şifrə yadda saxlanılıbsa
+  if (hasValidSession || (isRemembered && (savedAuth === currentPassword || savedAuth === DEFAULT_APP_PASSWORD))) {
     const authScr = $('authScreen');
     if (authScr) authScr.classList.add('hidden');
     const pInput = $('passwordInput');
@@ -598,7 +612,7 @@ async function verifyPassword() {
   let authType = 'local';
   const client = getSupabaseClient();
 
-  // 1. Supabase Server Auth yoxlanışı (Ən yüksək təhlükəsizlik)
+  // 1. Supabase Server Auth yoxlanışı (İstifadəçinin daxil etdiyi İSTƏNİLƏN email və şifrə ilə)
   if (client && client.auth && email) {
     try {
       const { data, error } = await client.auth.signInWithPassword({
@@ -608,6 +622,8 @@ async function verifyPassword() {
       if (!error && data?.session) {
         authSuccess = true;
         authType = 'supabase_auth';
+      } else if (error) {
+        console.warn("Supabase Auth xətası:", error.message);
       }
     } catch (e) {
       console.warn("Supabase Auth sorğusu xətası:", e);
@@ -628,8 +644,8 @@ async function verifyPassword() {
   if (authSuccess) {
     localStorage.setItem('kassa_auth_token', entered);
     localStorage.setItem('kassa_auth_mode', authType);
-    if (emailInput && emailInput.value) {
-      localStorage.setItem('kassa_auth_email', emailInput.value.trim());
+    if (email) {
+      localStorage.setItem('kassa_auth_email', email);
     }
     if (shouldRemember) {
       localStorage.setItem('kassa_remember_login', 'true');
@@ -679,24 +695,59 @@ function togglePasswordVisibility() {
   }
 }
 
-async function logout() {
-  if (confirm("Paneldən çıxmaq istəyirsiniz?")) {
+async function logout(skipConfirm = false) {
+  if (!skipConfirm && !confirm("Hesabdan çıxmaq və yeni email/şifrə ilə daxil olmaq istəyirsiniz?")) {
+    return;
+  }
+
+  try {
     const client = getSupabaseClient();
     if (client && client.auth) {
-      try { await client.auth.signOut(); } catch (e) {}
+      await client.auth.signOut();
     }
-    localStorage.removeItem('kassa_auth_token');
-    localStorage.removeItem('kassa_auth_mode');
-    localStorage.removeItem('kassa_remember_login');
-    document.documentElement.classList.remove('is-authenticated');
-    const pInput = $('passwordInput');
-    if (pInput) pInput.value = '';
-    const authScr = $('authScreen');
-    if (authScr) authScr.classList.remove('hidden');
-    setTimeout(() => {
-      if (pInput) pInput.focus();
-    }, 150);
+  } catch (e) {
+    console.warn("Supabase signOut xətası:", e);
   }
+
+  // Bütün giriş məlumatlarını təmizləyirik
+  localStorage.removeItem('kassa_auth_token');
+  localStorage.removeItem('kassa_auth_mode');
+  localStorage.removeItem('kassa_remember_login');
+  sessionStorage.clear();
+
+  // Supabase auth sessiyalarını localStorage-dən silirik
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('sb-') || k.includes('auth-token'))) {
+        localStorage.removeItem(k);
+      }
+    }
+  } catch (e) {}
+
+  document.documentElement.classList.remove('is-authenticated');
+  if (document.body) document.body.classList.remove('is-authenticated');
+
+  closeSettingsModal();
+
+  const authScr = $('authScreen');
+  if (authScr) authScr.classList.remove('hidden');
+
+  const pInput = $('passwordInput');
+  if (pInput) {
+    pInput.disabled = false;
+    pInput.value = '';
+  }
+
+  const emailInput = $('authEmailInput');
+  if (emailInput) {
+    emailInput.value = localStorage.getItem('kassa_auth_email') || '';
+    setTimeout(() => emailInput.focus(), 150);
+  } else {
+    setTimeout(() => { if (pInput) pInput.focus(); }, 150);
+  }
+
+  showToast("🚪 Hesabdan Çıxış Edildi", "Yeni email və şifrənizi daxil edə bilərsiniz.", true);
 }
 
 /* =====================================================================
@@ -706,6 +757,7 @@ function openSettingsModal() {
   syncStoreSelectUI();
   $('settingStoreName').value = getActiveStoreName();
   if ($('settingPwaName')) $('settingPwaName').value = getActivePwaName();
+  if ($('settingAuthEmail')) $('settingAuthEmail').value = getActiveStoreEmail();
   $('settingSupabaseUrl').value = getActiveSupabaseUrl();
   $('settingSupabaseKey').value = getActiveSupabaseKey();
   $('settingPassword').value = getActivePassword();
@@ -795,9 +847,14 @@ async function testSupabaseInHtml() {
 function saveSettingsFromModal() {
   const storeName = $('settingStoreName').value.trim() || 'Mağaza';
   const pwaName = $('settingPwaName') ? $('settingPwaName').value.trim() : '';
+  const authEmail = $('settingAuthEmail') ? $('settingAuthEmail').value.trim() : '';
   const url = $('settingSupabaseUrl').value.trim().replace(/\/+$/, '');
   const key = $('settingSupabaseKey').value.trim();
   const pwd = $('settingPassword').value.trim() || DEFAULT_APP_PASSWORD;
+
+  if (authEmail) {
+    localStorage.setItem('kassa_auth_email', authEmail);
+  }
 
   let matchedProfile = 'custom';
   for (const [pid, prof] of Object.entries(STORE_PROFILES)) {
