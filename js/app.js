@@ -5,7 +5,7 @@ const STORE_PROFILES = {
   'aburcubur': {
     id: 'aburcubur',
     name: 'Abur Çubur',
-    email: 'huseynhuseynli15@gmail.com',
+    email: 'magazapapatya@gmail.com',
     url: 'https://zcjthobakvppowerkxmv.supabase.co',
     key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjanRob2Jha3ZwcG93ZXJreG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MTQyNzMsImV4cCI6MjEwNTI5MDI3M30.ZLaSVPvowhwv50cv6W6d8AFYmPpPZ7oS5eZAxZzHI1U'
   },
@@ -19,6 +19,7 @@ const STORE_PROFILES = {
 };
 
 const DEFAULT_APP_PASSWORD = "Elsen0123456789-";
+let supabaseClient = null;
 
 function getActiveStoreEmail() {
   const custom = localStorage.getItem('kassa_auth_email');
@@ -157,6 +158,7 @@ function switchStoreProfile(profileId, triggerReload = true) {
     profileId = 'papatya2';
   }
 
+  supabaseClient = null;
   sessionStorage.setItem('kassa_session_profile', profileId);
   localStorage.setItem('kassa_active_profile', profileId);
 
@@ -505,10 +507,11 @@ function deleteSingleNotification(id) {
    5) AUTH & ŞİFRƏ PANELİ (SUPABASE AUTH & TƏHLÜKƏSİZ GİRİŞ)
    ===================================================================== */
 function getSupabaseClient() {
-  if (supabaseClient) return supabaseClient;
-  if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) return supabaseClient;
+  if (typeof window !== 'undefined' && typeof window.supabase !== 'undefined' && window.supabase.createClient) {
     const url = getActiveSupabaseUrl();
     const key = getActiveSupabaseKey();
+    if (!url || !key) return null;
     try {
       supabaseClient = window.supabase.createClient(url, key, {
         auth: {
@@ -621,7 +624,11 @@ async function verifyPassword() {
   let serverErrorMessage = '';
 
   try {
-    const client = getSupabaseClient();
+    let client = getSupabaseClient();
+    if (!client && typeof window !== 'undefined' && typeof window.supabase === 'undefined') {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      client = getSupabaseClient();
+    }
 
     // 1. Supabase Server Auth (Email daxil edilibsə)
     if (client && client.auth && email) {
@@ -744,6 +751,8 @@ async function logout(skipConfirm = false) {
   } catch (e) {
     console.warn("Supabase signOut xətası:", e);
   }
+
+  supabaseClient = null;
 
   // Bütün giriş məlumatlarını təmizləyirik
   localStorage.removeItem('kassa_auth_token');
