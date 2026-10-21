@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Cyber Security & Data Protection Headers -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://cdn.sheetjs.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com;">
 <title>Anbar &amp; Məhsullar — Canlı İdarəetmə</title>
 <meta name="theme-color" content="#070b14">
 <link rel="manifest" id="manifestLink" href="./manifest.json">
@@ -25,7 +29,7 @@
     try {
       var tok = localStorage.getItem('kassa_auth_token');
       var rem = localStorage.getItem('kassa_remember_login');
-      if (tok && (tok === "Elsen0123456789-" || rem === "true")) {
+      if (tok && (tok.indexOf('session_') === 0 || rem === "true")) {
         window.__IS_AUTH_PRECHECKED = true;
       }
     }catch(e){}
@@ -2064,7 +2068,9 @@ const STORE_PROFILES = {
   }
 };
 
-const DEFAULT_APP_PASSWORD = "Elsen0123456789-";
+function getActivePassword() {
+  return localStorage.getItem('kassa_custom_password') || '';
+}
 
 function getActiveProfileId() {
   // 1. URL parametr yoxlanışı (?store=papatya2 və ya ?store=aburcubur)
@@ -2119,7 +2125,7 @@ function getActiveSupabaseKey() {
 }
 
 function getActivePassword() {
-  return localStorage.getItem('kassa_custom_password') || DEFAULT_APP_PASSWORD;
+  return localStorage.getItem('kassa_custom_password') || '';
 }
 
 function getActiveStoreName() {
@@ -2334,7 +2340,9 @@ function checkAuth() {
   if ($('loginStoreTitle')) $('loginStoreTitle').textContent = storeName;
   document.title = storeName + " — Anbar & Məhsullar";
 
-  if (savedAuth === currentPassword || window.__IS_AUTH_PRECHECKED || (savedAuth && remembered)) {
+  const isAuthOk = (savedAuth && (savedAuth.indexOf('session_') === 0 || (currentPassword && savedAuth === currentPassword) || remembered)) || window.__IS_AUTH_PRECHECKED;
+
+  if (isAuthOk) {
     if ($('authScreen')) $('authScreen').classList.add('hidden');
     $('passwordInput')?.blur();
     if ($('passwordInput')) $('passwordInput').disabled = true;
@@ -2353,8 +2361,14 @@ function checkAuth() {
 function verifyPassword() {
   const entered = ($('passwordInput')?.value || '').trim();
   const currentPassword = getActivePassword();
-  if (entered === currentPassword || entered === DEFAULT_APP_PASSWORD) {
-    localStorage.setItem('kassa_auth_token', entered);
+  let ok = false;
+
+  if (currentPassword && entered === currentPassword) {
+    ok = true;
+  }
+
+  if (ok) {
+    localStorage.setItem('kassa_auth_token', 'session_authenticated');
     if ($('rememberPasswordChk')?.checked) {
       localStorage.setItem('kassa_remember_login', 'true');
     }
@@ -3628,7 +3642,7 @@ function saveSettings() {
   const pwaName = $('settingPwaName') ? $('settingPwaName').value.trim() : '';
   const url = $('settingSupabaseUrl').value.trim().replace(/\/+$/, '');
   const key = $('settingSupabaseKey').value.trim();
-  const pwd = $('settingPassword').value.trim() || DEFAULT_APP_PASSWORD;
+  const pwd = $('settingPassword').value.trim();
 
   let matchedProfile = 'custom';
   for (const [pid, prof] of Object.entries(STORE_PROFILES)) {
@@ -3660,7 +3674,6 @@ function saveSettings() {
 }
 
 /* ============ KATEQORİYAYA GÖRƏ SİLMƏ MƏNTİQİ ============ */
-const REQUIRED_DELETE_PASSWORD = "Elsen0123456789-";
 let currentDeleteTarget = ''; // 'satislar' | 'mehsullar' | 'musteriler'
 const DELETE_CONFIRM_PHRASE = "SİLMƏK İSTƏYİRƏM";
 
@@ -3738,8 +3751,21 @@ async function confirmDeleteCategory() {
     return;
   }
 
-  const validPassword = getActivePassword() || REQUIRED_DELETE_PASSWORD;
-  if (entered !== REQUIRED_DELETE_PASSWORD && entered !== validPassword) {
+  const validPassword = getActivePassword();
+  let passOk = false;
+  if (validPassword && entered === validPassword) {
+    passOk = true;
+  } else {
+    try {
+      const email = localStorage.getItem('kassa_auth_email');
+      if (email && supabaseClient) {
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password: entered });
+        if (!error) passOk = true;
+      }
+    } catch(e) {}
+  }
+
+  if (!passOk) {
     errorEl.style.display = 'block';
     errorEl.textContent = '❌ Admin şifrəsi yanlışdır!';
     if ($('deleteConfirmPassword')) $('deleteConfirmPassword').focus();

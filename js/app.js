@@ -5,27 +5,22 @@ const STORE_PROFILES = {
   'aburcubur': {
     id: 'aburcubur',
     name: 'Abur Çubur',
-    email: 'magazapapatya@gmail.com',
+    email: '',
     url: 'https://zcjthobakvppowerkxmv.supabase.co',
     key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjanRob2Jha3ZwcG93ZXJreG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MTQyNzMsImV4cCI6MjEwNTI5MDI3M30.ZLaSVPvowhwv50cv6W6d8AFYmPpPZ7oS5eZAxZzHI1U'
   },
   'papatya2': {
     id: 'papatya2',
     name: 'Papatya 2',
-    email: 'elsen.huseynov2015@yandex.ru',
+    email: '',
     url: 'https://ijnbsuupwwyqohysrjlc.supabase.co',
     key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqbmJzdXVwd3d5cW9oeXNyamxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MjA1NDUsImV4cCI6MjEwNTI5NjU0NX0.ZjiHo2gOzFdHHK4d7CXYfXrjDcwTyGG9oyQ-E6YtGKY'
   }
 };
 
-const DEFAULT_APP_PASSWORD = "Elsen0123456789-";
 let supabaseClient = null;
 
 function getActiveStoreEmail() {
-  const custom = localStorage.getItem('kassa_auth_email');
-  if (custom && custom.trim()) return custom.trim();
-  const pid = getActiveProfileId();
-  if (STORE_PROFILES[pid] && STORE_PROFILES[pid].email) return STORE_PROFILES[pid].email;
   return '';
 }
 
@@ -76,7 +71,7 @@ function getActiveSupabaseKey() {
 }
 
 function getActivePassword() {
-  return localStorage.getItem('kassa_custom_password') || DEFAULT_APP_PASSWORD;
+  return localStorage.getItem('kassa_custom_password') || '';
 }
 
 function getActiveStoreName() {
@@ -350,7 +345,9 @@ function notifEscape(str) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+    .replace(/\//g, '&#x2F;');
 }
 
 function loadNotifications() {
@@ -529,21 +526,22 @@ function getSupabaseClient() {
 async function checkAuth() {
   updateStoreTitle();
   const emailInput = $('authEmailInput');
-  const savedEmail = getActiveStoreEmail();
-  if (emailInput && !emailInput.value && savedEmail) {
-    emailInput.value = savedEmail;
+  // Kiber təhlükəsizlik və məxfilik: Email avtomatik yazılmır, xana həmişə təmiz saxlanılır
+  if (emailInput) {
+    emailInput.value = '';
   }
 
   const savedAuth = localStorage.getItem('kassa_auth_token');
   const isRemembered = localStorage.getItem('kassa_remember_login') === 'true';
 
   // Əgər istifadəçi çıxış edibsə və ya yadda saxlamayıbsa, mütləq giriş ekranını göstər
-  if (!savedAuth) {
+  if (!savedAuth || !isRemembered) {
     document.documentElement.classList.remove('is-authenticated');
     const authScr = $('authScreen');
     if (authScr) authScr.classList.remove('hidden');
     const pInput = $('passwordInput');
     if (pInput) pInput.disabled = false;
+    if (emailInput) emailInput.value = '';
     return;
   }
 
@@ -563,8 +561,8 @@ async function checkAuth() {
 
   const currentPassword = getActivePassword();
 
-  // Əgər Supabase Auth aktivdirsə və ya lokal şifrə yadda saxlanılıbsa
-  if (hasValidSession || (isRemembered && (savedAuth === currentPassword || savedAuth === DEFAULT_APP_PASSWORD))) {
+  // Əgər Supabase Auth sessiyası aktivdirsə və ya lokal fərdi şifrə yadda saxlanılıbsa
+  if (hasValidSession || (isRemembered && currentPassword && savedAuth === 'session_' + currentPassword)) {
     const authScr = $('authScreen');
     if (authScr) authScr.classList.add('hidden');
     const pInput = $('passwordInput');
@@ -580,6 +578,7 @@ async function checkAuth() {
     if (authScr) authScr.classList.remove('hidden');
     const pInput = $('passwordInput');
     if (pInput) pInput.disabled = false;
+    if (emailInput) emailInput.value = '';
     setTimeout(() => {
       const pInput = $('passwordInput');
       if (pInput) pInput.focus();
@@ -591,7 +590,7 @@ async function verifyPassword() {
   const pInput = $('passwordInput');
   const emailInput = $('authEmailInput');
   const entered = (pInput ? pInput.value : '').trim();
-  const email = (emailInput ? emailInput.value : getActiveStoreEmail()).trim();
+  const email = (emailInput ? emailInput.value : '').trim();
   const errorEl = $('authError');
   const box = $('authBox');
   const currentPassword = getActivePassword();
@@ -601,6 +600,15 @@ async function verifyPassword() {
   if (errorEl) {
     errorEl.style.display = 'none';
     errorEl.innerHTML = '';
+  }
+
+  if (!email) {
+    if (errorEl) {
+      errorEl.style.display = 'block';
+      errorEl.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Zəhmət olmasa email ünvanınızı daxil edin!';
+    }
+    if (emailInput) emailInput.focus();
+    return;
   }
 
   if (!entered) {
@@ -665,18 +673,19 @@ async function verifyPassword() {
       }
     }
 
-    // 2. Lokal ehtiyat şifrə yoxlanışı (Əgər Supabase Auth ilə girmədisə, köhnə şifrə ilə aça bilsin)
-    if (!authSuccess && (entered === currentPassword || entered === DEFAULT_APP_PASSWORD)) {
+    // 2. Lokal ehtiyat şifrə yoxlanışı (Yalnız istifadəçi əvvəlcədən fərdi şifrə təyin edibsə)
+    if (!authSuccess && currentPassword && entered === currentPassword) {
       authSuccess = true;
       authType = 'local_fallback';
     }
 
     if (authSuccess) {
-      localStorage.setItem('kassa_auth_token', entered);
+      // Kiber Təhlükəsizlik: Açıq şifrə heç vaxt localStorage-də saxlanılmır!
+      localStorage.setItem('kassa_auth_token', 'session_authenticated');
       localStorage.setItem('kassa_auth_mode', authType);
-      if (email) {
-        localStorage.setItem('kassa_auth_email', email);
-      }
+      // Təhlükəsizlik: Email avtomatik yaddaşa yazılmır
+      localStorage.removeItem('kassa_auth_email');
+
       if (shouldRemember) {
         localStorage.setItem('kassa_remember_login', 'true');
       } else {
@@ -688,6 +697,10 @@ async function verifyPassword() {
       if (pInput) {
         pInput.blur();
         pInput.disabled = true;
+        pInput.value = '';
+      }
+      if (emailInput) {
+        emailInput.value = '';
       }
       document.documentElement.classList.add('is-authenticated');
 
@@ -758,6 +771,7 @@ async function logout(skipConfirm = false) {
   localStorage.removeItem('kassa_auth_token');
   localStorage.removeItem('kassa_auth_mode');
   localStorage.removeItem('kassa_remember_login');
+  localStorage.removeItem('kassa_auth_email');
   sessionStorage.clear();
 
   // Supabase auth sessiyalarını localStorage-dən silirik
@@ -786,7 +800,7 @@ async function logout(skipConfirm = false) {
 
   const emailInput = $('authEmailInput');
   if (emailInput) {
-    emailInput.value = localStorage.getItem('kassa_auth_email') || '';
+    emailInput.value = '';
     setTimeout(() => emailInput.focus(), 150);
   } else {
     setTimeout(() => { if (pInput) pInput.focus(); }, 150);
@@ -854,7 +868,7 @@ function resetDefaultCredentials() {
   if (confirm("Standart parametrlərə (Abur Çubur) qaytarmaq istəyirsiniz?")) {
     selectProfileInModal('aburcubur');
     if ($('settingPwaName')) $('settingPwaName').value = 'Abur Çubur Kassa';
-    $('settingPassword').value = DEFAULT_APP_PASSWORD;
+    $('settingPassword').value = '';
   }
 }
 
@@ -927,7 +941,7 @@ function saveSettingsFromModal() {
   const authEmail = $('settingAuthEmail') ? $('settingAuthEmail').value.trim() : '';
   const url = $('settingSupabaseUrl').value.trim().replace(/\/+$/, '');
   const key = $('settingSupabaseKey').value.trim();
-  const pwd = $('settingPassword').value.trim() || DEFAULT_APP_PASSWORD;
+  const pwd = $('settingPassword').value.trim();
 
   if (authEmail) {
     localStorage.setItem('kassa_auth_email', authEmail);
@@ -966,7 +980,6 @@ function saveSettingsFromModal() {
 /* =====================================================================
    KATEQORİYAYA GÖRƏ SİLMƏ MƏNTİQİ (TYPE-TO-CONFIRM TƏHLÜKƏSİZLİK QALXANI)
    ===================================================================== */
-const REQUIRED_DELETE_PASSWORD = "Elsen0123456789-";
 const DELETE_CONFIRM_PHRASE = "SİLMƏK İSTƏYİRƏM";
 let currentDeleteTarget = ''; // 'satislar' | 'mehsullar' | 'musteriler'
 
@@ -1044,10 +1057,30 @@ async function confirmDeleteCategory() {
     return;
   }
 
-  const validPassword = getActivePassword() || REQUIRED_DELETE_PASSWORD;
-  if (entered !== REQUIRED_DELETE_PASSWORD && entered !== validPassword) {
+  const validPassword = getActivePassword();
+  let isPasswordCorrect = false;
+
+  if (validPassword && entered === validPassword) {
+    isPasswordCorrect = true;
+  } else {
+    // Supabase Auth ilə dinamik server təsdiqi
+    const client = getSupabaseClient();
+    try {
+      const { data: userData } = await client.auth.getUser();
+      const currentEmail = userData?.user?.email;
+      if (client && currentEmail) {
+        const { error: testAuthErr } = await client.auth.signInWithPassword({
+          email: currentEmail,
+          password: entered
+        });
+        if (!testAuthErr) isPasswordCorrect = true;
+      }
+    } catch(e) {}
+  }
+
+  if (!isPasswordCorrect) {
     errorEl.style.display = 'block';
-    errorEl.textContent = '❌ Admin şifrəsi yanlışdır!';
+    errorEl.textContent = '❌ Şifrə yanlışdır! Silinmə yalnız hesaba daxil olmuş admin şifrəsi ilə icra edilə bilər.';
     if ($('deleteConfirmPassword')) $('deleteConfirmPassword').focus();
     return;
   }
