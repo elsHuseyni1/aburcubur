@@ -5,18 +5,26 @@ const STORE_PROFILES = {
   'aburcubur': {
     id: 'aburcubur',
     name: 'Abur Çubur',
+    email: 'huseynhuseynli15@gmail.com',
     url: 'https://zcjthobakvppowerkxmv.supabase.co',
     key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjanRob2Jha3ZwcG93ZXJreG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MTQyNzMsImV4cCI6MjEwNTI5MDI3M30.ZLaSVPvowhwv50cv6W6d8AFYmPpPZ7oS5eZAxZzHI1U'
   },
   'papatya2': {
     id: 'papatya2',
     name: 'Papatya 2',
+    email: 'elsen.huseynov2015@yandex.ru',
     url: 'https://ijnbsuupwwyqohysrjlc.supabase.co',
     key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqbmJzdXVwd3d5cW9oeXNyamxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MjA1NDUsImV4cCI6MjEwNTI5NjU0NX0.ZjiHo2gOzFdHHK4d7CXYfXrjDcwTyGG9oyQ-E6YtGKY'
   }
 };
 
 const DEFAULT_APP_PASSWORD = "Elsen0123456789-";
+
+function getActiveStoreEmail() {
+  const pid = getActiveProfileId();
+  if (STORE_PROFILES[pid] && STORE_PROFILES[pid].email) return STORE_PROFILES[pid].email;
+  return localStorage.getItem('kassa_auth_email') || 'elsen.huseynov2015@yandex.ru';
+}
 
 function getActiveProfileId() {
   // 1. Əgər istifadəçi cari sessiyada ekrandakı menyudan xüsusi seçim edibsə:
@@ -490,16 +498,54 @@ function deleteSingleNotification(id) {
 }
 
 /* =====================================================================
-   5) AUTH & ŞİFRƏ PANELİ (AVTOMATİK YADDA SAXLANILAN GİRİŞ)
+   5) AUTH & ŞİFRƏ PANELİ (SUPABASE AUTH & TƏHLÜKƏSİZ GİRİŞ)
    ===================================================================== */
-function checkAuth() {
+function getSupabaseClient() {
+  if (supabaseClient) return supabaseClient;
+  if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+    const url = getActiveSupabaseUrl();
+    const key = getActiveSupabaseKey();
+    try {
+      supabaseClient = window.supabase.createClient(url, key, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true
+        }
+      });
+    } catch (e) {
+      console.warn("getSupabaseClient xətası:", e);
+    }
+  }
+  return supabaseClient;
+}
+
+async function checkAuth() {
   updateStoreTitle();
+  const emailInput = $('authEmailInput');
+  if (emailInput && !emailInput.value) {
+    emailInput.value = getActiveStoreEmail();
+  }
+
+  const client = getSupabaseClient();
+  let hasValidSession = false;
+
+  if (client && client.auth) {
+    try {
+      const { data } = await client.auth.getSession();
+      if (data && data.session) {
+        hasValidSession = true;
+      }
+    } catch (e) {
+      console.warn("Supabase Auth session yoxlanışı:", e);
+    }
+  }
+
   const currentPassword = getActivePassword();
   const savedAuth = localStorage.getItem('kassa_auth_token');
   const isRemembered = localStorage.getItem('kassa_remember_login') === 'true';
 
-  // Əgər şifrə yadda saxlanılıbsa və ya uyğundursa, giriş ekranını gizlət və birbaşa aç
-  if ((isRemembered && (savedAuth === currentPassword || savedAuth)) || savedAuth === currentPassword) {
+  // Əgər Supabase Auth aktivdirsə və ya lokal şifrə yadda saxlanılıbsa, giriş ekranını gizlət və birbaşa aç
+  if (hasValidSession || ((isRemembered && (savedAuth === currentPassword || savedAuth)) || savedAuth === currentPassword)) {
     const authScr = $('authScreen');
     if (authScr) authScr.classList.add('hidden');
     const pInput = $('passwordInput');
@@ -522,22 +568,75 @@ function checkAuth() {
   }
 }
 
-function verifyPassword() {
+async function verifyPassword() {
   const pInput = $('passwordInput');
-  const entered = pInput ? pInput.value : '';
+  const emailInput = $('authEmailInput');
+  const entered = pInput ? pInput.value.trim() : '';
+  const email = (emailInput ? emailInput.value : getActiveStoreEmail()).trim();
   const errorEl = $('authError');
   const box = $('authBox');
   const currentPassword = getActivePassword();
   const rememberChk = $('rememberPasswordChk');
   const shouldRemember = rememberChk ? rememberChk.checked : true;
 
-  if (entered === currentPassword) {
-    localStorage.setItem('kassa_auth_token', currentPassword);
+  if (!entered) {
+    if (errorEl) {
+      errorEl.style.display = 'block';
+      errorEl.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Şifrəni daxil edin!';
+    }
+    return;
+  }
+
+  const btn = document.querySelector('#authScreen .cyber-btn-primary');
+  const origBtnHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Yoxlanılır...';
+  }
+
+  let authSuccess = false;
+  let authType = 'local';
+  const client = getSupabaseClient();
+
+  // 1. Supabase Server Auth yoxlanışı (Ən yüksək təhlükəsizlik)
+  if (client && client.auth && email) {
+    try {
+      const { data, error } = await client.auth.signInWithPassword({
+        email: email,
+        password: entered
+      });
+      if (!error && data?.session) {
+        authSuccess = true;
+        authType = 'supabase_auth';
+      }
+    } catch (e) {
+      console.warn("Supabase Auth sorğusu xətası:", e);
+    }
+  }
+
+  // 2. Əgər Supabase Auth aktiv deyilsə və ya tapılmadısa, lokal şifrə ehtiyat yoxlanışı
+  if (!authSuccess && (entered === currentPassword || entered === DEFAULT_APP_PASSWORD)) {
+    authSuccess = true;
+    authType = 'local_fallback';
+  }
+
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = origBtnHtml;
+  }
+
+  if (authSuccess) {
+    localStorage.setItem('kassa_auth_token', entered);
+    localStorage.setItem('kassa_auth_mode', authType);
+    if (emailInput && emailInput.value) {
+      localStorage.setItem('kassa_auth_email', emailInput.value.trim());
+    }
     if (shouldRemember) {
       localStorage.setItem('kassa_remember_login', 'true');
     } else {
       localStorage.removeItem('kassa_remember_login');
     }
+
     const authScr = $('authScreen');
     if (authScr) authScr.classList.add('hidden');
     if (pInput) {
@@ -546,11 +645,20 @@ function verifyPassword() {
     }
     document.documentElement.classList.add('is-authenticated');
     if (errorEl) errorEl.style.display = 'none';
-    showToast("🔓 Uğurlu Giriş", "Xoş gəldiniz! Məlumatlar yüklənir...", true);
+
+    if (authType === 'supabase_auth') {
+      showToast("🛡️ Supabase Server Auth", "Server təsdiqi ilə təhlükəsiz giriş edildi!", true);
+    } else {
+      showToast("🔓 Uğurlu Giriş", "Xoş gəldiniz! Məlumatlar yüklənir...", true);
+    }
+
     if (isPwa()) enterFullScreen();
     initApp();
   } else {
-    if (errorEl) errorEl.style.display = 'block';
+    if (errorEl) {
+      errorEl.style.display = 'block';
+      errorEl.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Şifrə və ya email yanlışdır! Yenidən yoxlayın.';
+    }
     if (box) {
       box.classList.remove('shake');
       void box.offsetWidth;
@@ -571,9 +679,14 @@ function togglePasswordVisibility() {
   }
 }
 
-function logout() {
+async function logout() {
   if (confirm("Paneldən çıxmaq istəyirsiniz?")) {
+    const client = getSupabaseClient();
+    if (client && client.auth) {
+      try { await client.auth.signOut(); } catch (e) {}
+    }
     localStorage.removeItem('kassa_auth_token');
+    localStorage.removeItem('kassa_auth_mode');
     localStorage.removeItem('kassa_remember_login');
     document.documentElement.classList.remove('is-authenticated');
     const pInput = $('passwordInput');
@@ -717,49 +830,91 @@ function saveSettingsFromModal() {
 }
 
 /* =====================================================================
-   KATEQORİYAYA GÖRƏ SİLMƏ MƏNTİQİ
+   KATEQORİYAYA GÖRƏ SİLMƏ MƏNTİQİ (TYPE-TO-CONFIRM TƏHLÜKƏSİZLİK QALXANI)
    ===================================================================== */
 const REQUIRED_DELETE_PASSWORD = "Elsen0123456789-";
+const DELETE_CONFIRM_PHRASE = "SİLMƏK İSTƏYİRƏM";
 let currentDeleteTarget = ''; // 'satislar' | 'mehsullar' | 'musteriler'
 
 function openDeleteCategoryModal(target) {
   currentDeleteTarget = target;
-  $('deleteConfirmPassword').value = '';
-  $('deleteError').style.display = 'none';
+  if ($('deleteConfirmText')) $('deleteConfirmText').value = '';
+  if ($('deleteConfirmPassword')) $('deleteConfirmPassword').value = '';
+  if ($('deleteError')) $('deleteError').style.display = 'none';
 
   let title = 'Məlumatları Sil';
   let desc = 'Supabase-dəki seçilmiş məlumatlar silinəcək.';
 
   if (target === 'satislar') {
     title = '🛒 Satışları Sil';
-    desc = '⚠️ <b>DİQQƏT:</b> Supabase bazasındakı <b>bütün satış qeydləri</b> tamamilə silinəcək!';
+    desc = '⚠️ <b style="color:#fb7185">DİQQƏT:</b> Supabase bazasındakı <b>bütün satış qeydləri</b> birdəfəlik silinəcək! Bu əməliyyat geri qaytarıla bilməz.';
   } else if (target === 'mehsullar') {
     title = '📦 Anbardakı Malları Sil';
-    desc = '⚠️ <b>DİQQƏT:</b> Supabase bazasındakı <b>bütün anbar məhsulları</b> tamamilə silinəcək!';
+    desc = '⚠️ <b style="color:#fb7185">DİQQƏT:</b> Supabase bazasındakı <b>bütün anbar məhsulları</b> birdəfəlik silinəcək! Bu əməliyyat geri qaytarıla bilməz.';
   } else if (target === 'musteriler') {
     title = '👥 Müştəriləri və Borcları Sil';
-    desc = '⚠️ <b>DİQQƏT:</b> Supabase bazasındakı <b>bütün müştəri və borc qeydləri</b> tamamilə silinəcək!';
+    desc = '⚠️ <b style="color:#fb7185">DİQQƏT:</b> Supabase bazasındakı <b>bütün müştəri və borc qeydləri</b> birdəfəlik silinəcək! Bu əməliyyat geri qaytarıla bilməz.';
   }
 
   $('deleteModalTitle').innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${title}`;
-  $('deleteModalDesc').innerHTML = `${desc}<br><br>Əməliyyatı təsdiqləmək üçün zəhmət olmasa təhlükəsizlik şifrəsini (<code style="color:#fbbf24;font-weight:700">Elsen0123456789-</code>) daxil edin:`;
+  $('deleteModalDesc').innerHTML = desc;
+  updateDeleteBtnState();
   $('deleteCategoryModal').classList.remove('hidden');
-  setTimeout(() => $('deleteConfirmPassword').focus(), 150);
+  setTimeout(() => {
+    if ($('deleteConfirmText')) $('deleteConfirmText').focus();
+  }, 150);
+}
+
+function updateDeleteBtnState() {
+  const textInput = $('deleteConfirmText');
+  const pwdInput = $('deleteConfirmPassword');
+  const btn = $('btnConfirmDeleteCategory');
+  if (!btn) return;
+
+  const enteredText = (textInput ? textInput.value : '').trim().toUpperCase();
+  const enteredPwd = (pwdInput ? pwdInput.value : '').trim();
+
+  const isTextValid = enteredText === DELETE_CONFIRM_PHRASE || enteredText === 'SILMEK ISTEYIREM';
+  const isPwdProvided = enteredPwd.length >= 3;
+
+  if (isTextValid && isPwdProvided) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    btn.style.boxShadow = '0 8px 24px -6px rgba(225,29,72,.7)';
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = '0.35';
+    btn.style.cursor = 'not-allowed';
+    btn.style.boxShadow = 'none';
+  }
 }
 
 function closeDeleteCategoryModal() {
   $('deleteCategoryModal').classList.add('hidden');
+  if ($('deleteConfirmText')) $('deleteConfirmText').value = '';
+  if ($('deleteConfirmPassword')) $('deleteConfirmPassword').value = '';
 }
 
 async function confirmDeleteCategory() {
-  const entered = ($('deleteConfirmPassword').value || '').trim();
+  const textInput = $('deleteConfirmText');
+  const enteredText = (textInput ? textInput.value : '').trim().toUpperCase();
+  const entered = ($('deleteConfirmPassword')?.value || '').trim();
   const errorEl = $('deleteError');
   const btn = $('btnConfirmDeleteCategory');
+
+  if (enteredText !== DELETE_CONFIRM_PHRASE && enteredText !== 'SILMEK ISTEYIREM') {
+    errorEl.style.display = 'block';
+    errorEl.textContent = '❌ Təsdiq üçün yuxarıdakı xanaya "SİLMƏK İSTƏYİRƏM" yazmalısınız!';
+    if (textInput) textInput.focus();
+    return;
+  }
 
   const validPassword = getActivePassword() || REQUIRED_DELETE_PASSWORD;
   if (entered !== REQUIRED_DELETE_PASSWORD && entered !== validPassword) {
     errorEl.style.display = 'block';
-    errorEl.textContent = '❌ Şifrə yanlışdır!';
+    errorEl.textContent = '❌ Admin şifrəsi yanlışdır!';
+    if ($('deleteConfirmPassword')) $('deleteConfirmPassword').focus();
     return;
   }
 
@@ -768,46 +923,50 @@ async function confirmDeleteCategory() {
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Silinir...';
 
   try {
-    if (!supabaseClient) {
+    const client = getSupabaseClient();
+    if (!client) {
       throw new Error("Supabase əlaqəsi aktiv deyil.");
     }
 
     if (currentDeleteTarget === 'satislar') {
-      const { error } = await supabaseClient.from('satislar').delete().not('id', 'is', null);
+      const { error } = await client.from('satislar').delete().not('id', 'is', null);
       if (error) throw error;
       SALES = [];
       update();
       showToast("🗑️ Satışlar Silindi", "Supabase-dəki bütün satış qeydləri uğurla silindi!", false);
     } 
     else if (currentDeleteTarget === 'mehsullar') {
-      const { error } = await supabaseClient.from('mehsullar').delete().not('id', 'is', null);
+      const { error } = await client.from('mehsullar').delete().not('id', 'is', null);
       if (error) throw error;
       showToast("🗑️ Anbar Silindi", "Supabase-dəki bütün məhsullar uğurla silindi!", false);
     } 
     else if (currentDeleteTarget === 'musteriler') {
-      try { await supabaseClient.from('borc_odenisleri').delete().not('id', 'is', null); } catch(e) {}
-      const { error } = await supabaseClient.from('musteriler').delete().not('id', 'is', null);
+      try { await client.from('borc_odenisleri').delete().not('id', 'is', null); } catch(e) {}
+      const { error } = await client.from('musteriler').delete().not('id', 'is', null);
       if (error) throw error;
       showToast("🗑️ Müştərilər Silindi", "Supabase-dəki bütün müştərilər və borclar uğurla silindi!", false);
     }
 
     closeDeleteCategoryModal();
     closeSettingsModal();
-    $('deleteConfirmPassword').value = '';
   } catch (err) {
     console.error("Silinmə xətası:", err);
     errorEl.style.display = 'block';
-    errorEl.textContent = `❌ Xəta: ${err.message || 'Məlumatlar silinə bilmədi'}`;
+    if (err.message && err.message.toLowerCase().includes('violates row-level security')) {
+      errorEl.textContent = '🛡️ XƏTA: Supabase RLS təhlükəsizlik qaydası client tərəfdən bazanı silməyə icazə vermir!';
+    } else {
+      errorEl.textContent = `❌ Xəta: ${err.message || 'Məlumatlar silinə bilmədi'}`;
+    }
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Sil';
+    btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Silinməni Təsdiqlə';
+    updateDeleteBtnState();
   }
 }
 
 /* =====================================================================
    7) SUPABASE REALTIME & MƏLUMAT MODELİ
    ===================================================================== */
-let supabaseClient = null;
 let realtimeChannel = null;
 let SALES = [];
 const state = { from: null, to: null, fromTime: '00:00', toTime: '23:59', nov: 'all', q: '', sortKey: 'tarix', sortDir: -1 };
@@ -833,12 +992,16 @@ function initApp() {
     return;
   }
 
-  const url = getActiveSupabaseUrl();
-  const key = getActiveSupabaseKey();
-
   try {
     setConnectionStatus('connecting', 'QOŞULUR...');
-    supabaseClient = window.supabase.createClient(url, key);
+    supabaseClient = getSupabaseClient();
+    if (!supabaseClient) {
+      const url = getActiveSupabaseUrl();
+      const key = getActiveSupabaseKey();
+      supabaseClient = window.supabase.createClient(url, key, {
+        auth: { persistSession: true, autoRefreshToken: true }
+      });
+    }
     fetchData();
     setupRealtime();
   } catch (err) {
