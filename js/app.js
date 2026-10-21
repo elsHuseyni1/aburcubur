@@ -1512,7 +1512,8 @@ function renderStats(rows){
   }
 
   if (banner) {
-    if (totalLeakCount > 0) {
+    // Tələb: Bu xəbərdarlıq banneri YALNIZ ödəniş növündə "Kassa İtkisi" (state.nov === 'loss') seçildikdə görünsün!
+    if (state.nov === 'loss' && totalLeakCount > 0) {
       banner.style.display = 'flex';
       if ($('lossBadgeCount')) $('lossBadgeCount').textContent = totalLeakCount + ' əməliyyat';
       if ($('lossTotalSum')) $('lossTotalSum').textContent = '-' + money(totalLossSum);
