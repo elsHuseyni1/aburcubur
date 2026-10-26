@@ -3,7 +3,7 @@
    Versiya: 2.1.0 (Modular & High-Speed Mobile Cache)
    ===================================================================== */
 
-const CACHE_NAME = 'papatya-kassa-cache-v2-4-0';
+const CACHE_NAME = 'papatya-kassa-cache-v2-4-1';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -67,8 +67,18 @@ self.addEventListener('fetch', event => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // 1. Canlı Supabase sorğuları heç vaxt keşlənməməlidir (həmişə canlı şəbəkə)
+  // Brauzer daxili, uzantı (chrome-extension://, ya-browser:// və s.) və ya qeyri-http protokollarını burax
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
+
+  // 1. Canlı Supabase sorğuları və qeyri-GET əməliyyatları heç vaxt keşlənməməlidir
   if (url.hostname.includes('supabase.co') || req.method !== 'GET') {
+    return;
+  }
+
+  // Kənar xidmətləri (CDN, xarici scriptlər və s.) Service Worker qarışmadan birbaşa brauzerə ver
+  if (url.origin !== self.location.origin) {
     return;
   }
 

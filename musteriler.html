@@ -6,7 +6,6 @@
 <!-- Cyber Security & Data Protection Headers -->
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://cdn.sheetjs.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com;">
 <title>Müştərilər &amp; Borc Dəftəri — Canlı İdarəetmə</title>
 <meta name="theme-color" content="#070b14">
 <link rel="manifest" id="manifestLink" href="./manifest.json">
@@ -64,7 +63,10 @@ body{
   -webkit-font-smoothing:antialiased;
   position:relative;
 }
-.bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.bg{
+  position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+  background:radial-gradient(ellipse 90% 70% at 50% 20%, rgba(139,92,246,0.18) 0%, rgba(59,130,246,0.08) 50%, #05070f 100%);
+}
 .bg::after{
   content:'';position:absolute;inset:0;
   background-image:
@@ -74,13 +76,7 @@ body{
   -webkit-mask-image:radial-gradient(ellipse 90% 70% at 50% 30%,#000 30%,transparent 100%);
   mask-image:radial-gradient(ellipse 90% 70% at 50% 30%,#000 30%,transparent 100%);
 }
-.orb{position:absolute;border-radius:50%;filter:blur(130px);opacity:.45;will-change:transform}
-.o1{width:620px;height:620px;background:#8b5cf6;top:-260px;left:-160px;animation:drift1 24s ease-in-out infinite}
-.o2{width:540px;height:540px;background:#ec4899;top:-100px;right:-140px;animation:drift2 28s ease-in-out infinite;opacity:.32}
-.o3{width:580px;height:580px;background:#3b82f6;bottom:-300px;left:30%;animation:drift3 32s ease-in-out infinite;opacity:.28}
-@keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(110px,70px) scale(1.1)}}
-@keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-90px,110px) scale(1.08)}}
-@keyframes drift3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(70px,-80px) scale(1.12)}}
+.orb{display:none !important;animation:none !important;}
 
 .wrap{position:relative;z-index:1;max-width:1680px;margin:0 auto;padding:26px 24px 70px}
 
