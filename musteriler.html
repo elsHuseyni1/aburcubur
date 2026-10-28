@@ -23,7 +23,15 @@
 <!-- SheetJS (Excel Çıxarışı) -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <script>
-  // Sürətli yadda saxlanmış giriş yoxlanışı (ekran yanıb-sönməsinin qarşısını alır)
+  // Sürətli tema yoxlanışı (Ağ temanın dərhal açılması və yadda saxlanması üçün)
+  (function(){
+    try {
+      if (localStorage.getItem('kassa_theme') === 'light') {
+        document.documentElement.classList.add('light-theme');
+      }
+    }catch(e){}
+  })();
+  // Sürətli yadda saxlanmış giriş yoxlanışı
   (function(){
     try {
       var tok = localStorage.getItem('kassa_auth_token');
@@ -901,16 +909,6 @@ body.light-theme .more-grid-btn {
       <!-- Real Vaxt Saatı -->
       <div class="clock" id="clock">--:--:--</div>
 
-      <!-- Aktiv Mağaza / Baza Seçici -->
-      <div class="store-badge-selector" title="Aktiv Mağaza / Baza Seçimi">
-        <i class="fa-solid fa-store" style="color:#22d3ee;font-size:12px"></i>
-        <select id="headerStoreSelect" class="store-dropdown" onchange="onHeaderStoreChange(this.value)">
-          <option value="aburcubur">Abur Çubur</option>
-          <option value="papatya2">Papatya 2</option>
-          <option value="custom">Fərdi Baza</option>
-        </select>
-      </div>
-
       <!-- Keçid Düymələri -->
       <a href="index.html" class="nav-switch-btn sales" title="Satış Panelinə keçid">
         <i class="fa-solid fa-chart-pie"></i>
@@ -1235,6 +1233,12 @@ body.light-theme .more-grid-btn {
      JAVASCRIPT: MƏNTİQ, SUPABASE REALTIME VƏ BORC ANALİTİKASI
      ===================================================================== -->
 <script>
+const $ = id => document.getElementById(id);
+const pad = n => (n < 10 ? '0' + n : '' + n);
+const nf2 = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const nf0 = new Intl.NumberFormat('ru-RU');
+const money = n => nf2.format(n || 0) + ' ₼';
+
 const STORE_PROFILES = {
   'aburcubur': {
     id: 'aburcubur',
@@ -1251,18 +1255,7 @@ const STORE_PROFILES = {
 };
 
 function getActiveProfileId() {
-  // 1. URL parametr yoxlanışı (?store=aburcubur və ya ?store=papatya2) — ƏN YÜKSƏK PRİORİTET
-  try {
-    const urlParams = new URLSearchParams(window.location.search || '');
-    const storeParam = (urlParams.get('store') || '').toLowerCase().trim();
-    if (storeParam && (STORE_PROFILES[storeParam] || storeParam === 'custom')) {
-      sessionStorage.setItem('kassa_session_profile', storeParam);
-      localStorage.setItem('kassa_active_profile', storeParam);
-      return storeParam;
-    }
-  } catch (e) {}
-
-  // 2. İstifadəçi cari sessiyada və ya yaddaşda xüsusi seçim edibsə:
+  // 1. İstifadəçi tərəfindən seçilmiş aktiv profil (localStorage / sessionStorage)
   const sessionSelected = sessionStorage.getItem('kassa_session_profile');
   if (sessionSelected && (STORE_PROFILES[sessionSelected] || sessionSelected === 'custom')) {
     return sessionSelected;
@@ -1273,36 +1266,36 @@ function getActiveProfileId() {
     return localSelected;
   }
 
-  // 3. Əgər yaddaşda mağaza adı və ya URL-i saxlanılıbsa:
+  // 2. Yaddaşda saxlanılan mağaza adı və ya URL-i
   const savedStoreName = (localStorage.getItem('kassa_store_name') || '').toLowerCase();
-  if (savedStoreName.includes('abur')) return 'aburcubur';
   if (savedStoreName.includes('papatya')) return 'papatya2';
+  if (savedStoreName.includes('abur')) return 'aburcubur';
 
   const savedUrl = (localStorage.getItem('kassa_supabase_url') || '').toLowerCase();
-  if (savedUrl.includes('zcjthobakvppowerkxmv')) return 'aburcubur';
   if (savedUrl.includes('ijnbsuupwwyqohysrjlc')) return 'papatya2';
+  if (savedUrl.includes('zcjthobakvppowerkxmv')) return 'aburcubur';
 
-  // 4. Fayl adının özü (YALNIZ fayl adında xüsusi ad varsa, bütün URL/domen axtarılmır!)
-  const fileName = (window.location.pathname || '').split('/').pop().toLowerCase();
-  if (fileName.includes('aburcubur')) return 'aburcubur';
-  if (fileName.includes('papatya2')) return 'papatya2';
+  // 3. Əgər linkdə və ya fayl adında birbaşa göstərilibsə
+  const currentHref = (window.location.href || '').toLowerCase();
+  if (currentHref.includes('papatya2') || currentHref.includes('papatya')) return 'papatya2';
+  if (currentHref.includes('aburcubur')) return 'aburcubur';
 
-  // 5. Default olaraq Papatya 2
-  return 'papatya2';
+  // 4. Default olaraq Abur Çubur
+  return 'aburcubur';
 }
 
 function getActiveSupabaseUrl() {
   const pid = getActiveProfileId();
   if (STORE_PROFILES[pid]) return STORE_PROFILES[pid].url;
   const saved = (localStorage.getItem('kassa_supabase_url') || '').trim().replace(/\/+$/, '');
-  return saved || STORE_PROFILES['papatya2'].url;
+  return saved || STORE_PROFILES['aburcubur'].url;
 }
 
 function getActiveSupabaseKey() {
   const pid = getActiveProfileId();
   if (STORE_PROFILES[pid]) return STORE_PROFILES[pid].key;
   const saved = (localStorage.getItem('kassa_supabase_key') || '').trim();
-  return saved || STORE_PROFILES['papatya2'].key;
+  return saved || STORE_PROFILES['aburcubur'].key;
 }
 
 function getActivePassword() {
@@ -1314,28 +1307,7 @@ function getActiveStoreName() {
   if (STORE_PROFILES[pid]) return STORE_PROFILES[pid].name;
   const saved = localStorage.getItem('kassa_store_name');
   if (saved && saved !== 'Papatya' && saved !== 'Satış İdarəetmə Paneli' && saved !== 'Papatya — Müştərilər & Borclar') return saved;
-  return 'Papatya 2';
-}
-
-function updateNavLinks() {
-  const pid = getActiveProfileId();
-  document.querySelectorAll('a.nav-switch-btn, a[href*="anbar.html"], a[href*="index.html"], a[href*="musteriler.html"]').forEach(a => {
-    try {
-      const rawHref = a.getAttribute('href');
-      if (!rawHref || rawHref.startsWith('#') || rawHref.startsWith('javascript:')) return;
-      const cleanPath = rawHref.split('?')[0];
-      a.setAttribute('href', `${cleanPath}?store=${encodeURIComponent(pid)}`);
-    } catch(e) {}
-  });
-
-  const mobAnbarBtn = document.getElementById('btnMobNavAnbar');
-  if (mobAnbarBtn) {
-    mobAnbarBtn.setAttribute('onclick', `window.location.href='anbar.html?store=${encodeURIComponent(pid)}'`);
-  }
-  const mobIndexBtn = document.getElementById('btnMobNavIndex');
-  if (mobIndexBtn) {
-    mobIndexBtn.setAttribute('onclick', `window.location.href='index.html?store=${encodeURIComponent(pid)}'`);
-  }
+  return 'Abur Çubur';
 }
 
 function updateStoreTitle() {
@@ -1351,26 +1323,19 @@ function updateStoreTitle() {
   if (manifestLink) {
     manifestLink.href = `./manifest.json?pwa_name=${encodeURIComponent(pwaName)}&t=${Date.now()}`;
   }
-  updateNavLinks();
 }
 
 function syncStoreSelectUI() {
   const pid = getActiveProfileId();
-  const sel = $('headerStoreSelect');
-  if (sel) sel.value = pid;
-
   const cardA = $('cardAburCubur');
   const cardP = $('cardPapatya2');
   if (cardA) cardA.classList.toggle('active', pid === 'aburcubur');
   if (cardP) cardP.classList.toggle('active', pid === 'papatya2');
 }
 
-// Səhifə oxunan kimi mağaza adını dərhal tətbiq edirik
-try { updateStoreTitle(); syncStoreSelectUI(); } catch(e) {}
-
 function switchStoreProfile(profileId, triggerReload = true) {
   if (!STORE_PROFILES[profileId] && profileId !== 'custom') {
-    profileId = 'papatya2';
+    profileId = 'aburcubur';
   }
 
   sessionStorage.setItem('kassa_session_profile', profileId);
@@ -1386,19 +1351,11 @@ function switchStoreProfile(profileId, triggerReload = true) {
   updateStoreTitle();
 
   const profName = STORE_PROFILES[profileId] ? STORE_PROFILES[profileId].name : 'Fərdi Baza';
-  showToast("🏪 Baza Dəyişdirildi", `${profName} bazasına qoşulur...`, 'insert');
+  showToast("🏪 Baza Seçildi", `${profName} bazasına qoşulur...`, 'insert');
 
   if (triggerReload) {
     initApp();
   }
-}
-
-function onHeaderStoreChange(val) {
-  if (val === 'custom') {
-    openSettingsModal();
-    return;
-  }
-  switchStoreProfile(val, true);
 }
 
 function selectProfileInModal(profileId) {
@@ -1413,12 +1370,6 @@ function selectProfileInModal(profileId) {
   localStorage.setItem('kassa_active_profile', profileId);
   syncStoreSelectUI();
 }
-
-const $ = id => document.getElementById(id);
-const pad = n => (n < 10 ? '0' + n : '' + n);
-const nf2 = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const nf0 = new Intl.NumberFormat('ru-RU');
-const money = n => nf2.format(n || 0) + ' ₼';
 
 let isSoundMuted = false;
 let supabaseClient = null;
@@ -1504,18 +1455,35 @@ function playChime(type = 'insert') {
 /* ============ TEMA DƏYİŞMƏ ============ */
 function initTheme() {
   const saved = localStorage.getItem('kassa_theme');
-  if (saved === 'light') {
+  const isLight = (saved === 'light');
+  if (isLight) {
+    document.documentElement.classList.add('light-theme');
     document.body.classList.add('light-theme');
-    $('themeIcon').className = 'fa-solid fa-moon';
-    $('themeIcon').style.color = '#8b5cf6';
+    const icon = $('themeIcon');
+    if (icon) {
+      icon.className = 'fa-solid fa-moon';
+      icon.style.color = '#8b5cf6';
+    }
+  } else {
+    document.documentElement.classList.remove('light-theme');
+    document.body.classList.remove('light-theme');
+    const icon = $('themeIcon');
+    if (icon) {
+      icon.className = 'fa-solid fa-sun';
+      icon.style.color = '#fbbf24';
+    }
   }
 }
 
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light-theme');
+  document.documentElement.classList.toggle('light-theme', isLight);
   localStorage.setItem('kassa_theme', isLight ? 'light' : 'dark');
-  $('themeIcon').className = isLight ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
-  $('themeIcon').style.color = isLight ? '#8b5cf6' : '#fbbf24';
+  const icon = $('themeIcon');
+  if (icon) {
+    icon.className = isLight ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+    icon.style.color = isLight ? '#8b5cf6' : '#fbbf24';
+  }
 }
 
 /* ============ AUTH & GİRİŞ ============ */
@@ -2325,11 +2293,6 @@ async function confirmDeleteCategory() {
     updateDeleteBtnState();
   }
 }
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Sil';
-  }
-}
 
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
@@ -2382,7 +2345,11 @@ function closeMoreSheet() {
   document.getElementById('mobNavHome')?.classList.add('active');
 }
 
-window.addEventListener('DOMContentLoaded', checkAuth);
+window.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  initClock();
+  checkAuth();
+});
 </script>
 
 <!-- ============ MOBİL BOTTOM NAVIGATION (ŞƏKİLDƏKİ KİMİ 100% EYNİ) ============ -->

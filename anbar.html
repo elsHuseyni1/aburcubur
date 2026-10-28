@@ -23,7 +23,15 @@
 <!-- SheetJS (Excel Çıxarışı) -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <script>
-  // Sürətli yadda saxlanmış giriş yoxlanışı (ekran yanıb-sönməsinin qarşısını alır)
+  // Sürətli tema yoxlanışı (Ağ temanın dərhal açılması və yadda saxlanması üçün)
+  (function(){
+    try {
+      if (localStorage.getItem('kassa_theme') === 'light') {
+        document.documentElement.classList.add('light-theme');
+      }
+    }catch(e){}
+  })();
+  // Sürətli yadda saxlanmış giriş yoxlanışı
   (function(){
     try {
       var tok = localStorage.getItem('kassa_auth_token');
@@ -1595,16 +1603,6 @@ body.light-theme .more-grid-btn {
       <!-- Real Vaxt Saatı -->
       <div class="clock" id="clock">--:--:--</div>
 
-      <!-- Aktiv Mağaza / Baza Seçici -->
-      <div class="store-badge-selector" title="Aktiv Mağaza / Baza Seçimi">
-        <i class="fa-solid fa-store" style="color:#22d3ee;font-size:12px"></i>
-        <select id="headerStoreSelect" class="store-dropdown" onchange="onHeaderStoreChange(this.value)">
-          <option value="aburcubur">Abur Çubur</option>
-          <option value="papatya2">Papatya 2</option>
-          <option value="custom">Fərdi Baza</option>
-        </select>
-      </div>
-
       <!-- Satış Panelinə Keçid Düyməsi -->
       <a href="index.html" class="nav-switch-btn" title="Satış Panelinə keçid">
         <i class="fa-solid fa-chart-pie"></i>
@@ -2263,18 +2261,7 @@ function getActivePassword() {
 }
 
 function getActiveProfileId() {
-  // 1. URL parametr yoxlanışı (?store=aburcubur və ya ?store=papatya2) — ƏN YÜKSƏK PRİORİTET
-  try {
-    const urlParams = new URLSearchParams(window.location.search || '');
-    const storeParam = (urlParams.get('store') || '').toLowerCase().trim();
-    if (storeParam && (STORE_PROFILES[storeParam] || storeParam === 'custom')) {
-      sessionStorage.setItem('kassa_session_profile', storeParam);
-      localStorage.setItem('kassa_active_profile', storeParam);
-      return storeParam;
-    }
-  } catch (e) {}
-
-  // 2. İstifadəçi cari sessiyada və ya yaddaşda xüsusi seçim edibsə:
+  // 1. İstifadəçi tərəfindən seçilmiş aktiv profil (localStorage / sessionStorage)
   const sessionSelected = sessionStorage.getItem('kassa_session_profile');
   if (sessionSelected && (STORE_PROFILES[sessionSelected] || sessionSelected === 'custom')) {
     return sessionSelected;
@@ -2285,36 +2272,36 @@ function getActiveProfileId() {
     return localSelected;
   }
 
-  // 3. Əgər yaddaşda mağaza adı və ya URL-i saxlanılıbsa:
+  // 2. Yaddaşda saxlanılan mağaza adı və ya URL-i
   const savedStoreName = (localStorage.getItem('kassa_store_name') || '').toLowerCase();
-  if (savedStoreName.includes('abur')) return 'aburcubur';
   if (savedStoreName.includes('papatya')) return 'papatya2';
+  if (savedStoreName.includes('abur')) return 'aburcubur';
 
   const savedUrl = (localStorage.getItem('kassa_supabase_url') || '').toLowerCase();
-  if (savedUrl.includes('zcjthobakvppowerkxmv')) return 'aburcubur';
   if (savedUrl.includes('ijnbsuupwwyqohysrjlc')) return 'papatya2';
+  if (savedUrl.includes('zcjthobakvppowerkxmv')) return 'aburcubur';
 
-  // 4. Fayl adının özü (YALNIZ fayl adında xüsusi ad varsa, bütün URL/domen axtarılmır!)
-  const fileName = (window.location.pathname || '').split('/').pop().toLowerCase();
-  if (fileName.includes('aburcubur')) return 'aburcubur';
-  if (fileName.includes('papatya2')) return 'papatya2';
+  // 3. Əgər linkdə və ya fayl adında birbaşa göstərilibsə
+  const currentHref = (window.location.href || '').toLowerCase();
+  if (currentHref.includes('papatya2') || currentHref.includes('papatya')) return 'papatya2';
+  if (currentHref.includes('aburcubur')) return 'aburcubur';
 
-  // 5. Default olaraq PC / local / test mühitində Papatya 2
-  return 'papatya2';
+  // 4. Default olaraq Abur Çubur
+  return 'aburcubur';
 }
 
 function getActiveSupabaseUrl() {
   const pid = getActiveProfileId();
   if (STORE_PROFILES[pid]) return STORE_PROFILES[pid].url;
   const saved = (localStorage.getItem('kassa_supabase_url') || '').trim().replace(/\/+$/, '');
-  return saved || STORE_PROFILES['papatya2'].url;
+  return saved || STORE_PROFILES['aburcubur'].url;
 }
 
 function getActiveSupabaseKey() {
   const pid = getActiveProfileId();
   if (STORE_PROFILES[pid]) return STORE_PROFILES[pid].key;
   const saved = (localStorage.getItem('kassa_supabase_key') || '').trim();
-  return saved || STORE_PROFILES['papatya2'].key;
+  return saved || STORE_PROFILES['aburcubur'].key;
 }
 
 function getActivePassword() {
@@ -2326,28 +2313,7 @@ function getActiveStoreName() {
   if (STORE_PROFILES[pid]) return STORE_PROFILES[pid].name;
   const saved = localStorage.getItem('kassa_store_name');
   if (saved && saved !== 'Papatya' && saved !== 'Satış İdarəetmə Paneli' && saved !== 'Papatya — Anbar İdarəetməsi') return saved;
-  return 'Papatya 2';
-}
-
-function updateNavLinks() {
-  const pid = getActiveProfileId();
-  document.querySelectorAll('a.nav-switch-btn, a[href*="anbar.html"], a[href*="index.html"], a[href*="musteriler.html"]').forEach(a => {
-    try {
-      const rawHref = a.getAttribute('href');
-      if (!rawHref || rawHref.startsWith('#') || rawHref.startsWith('javascript:')) return;
-      const cleanPath = rawHref.split('?')[0];
-      a.setAttribute('href', `${cleanPath}?store=${encodeURIComponent(pid)}`);
-    } catch(e) {}
-  });
-
-  const mobMusterilerBtn = document.getElementById('btnMobNavMusteriler');
-  if (mobMusterilerBtn) {
-    mobMusterilerBtn.setAttribute('onclick', `window.location.href='musteriler.html?store=${encodeURIComponent(pid)}'`);
-  }
-  const mobIndexBtn = document.getElementById('btnMobNavIndex');
-  if (mobIndexBtn) {
-    mobIndexBtn.setAttribute('onclick', `window.location.href='index.html?store=${encodeURIComponent(pid)}'`);
-  }
+  return 'Abur Çubur';
 }
 
 function updateStoreTitle() {
@@ -2363,7 +2329,6 @@ function updateStoreTitle() {
   if (manifestLink) {
     manifestLink.href = `./manifest.json?pwa_name=${encodeURIComponent(pwaName)}&t=${Date.now()}`;
   }
-  updateNavLinks();
 }
 
 function syncStoreSelectUI() {
