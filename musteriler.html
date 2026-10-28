@@ -863,7 +863,7 @@ body.light-theme .more-grid-btn {
     <div class="logo" style="margin:0 auto 16px;width:56px;height:56px">
       <i class="fa-solid fa-users" style="font-size:24px"></i>
     </div>
-    <h2 style="font-size:20px;font-weight:800;margin-bottom:6px" id="loginStoreTitle">Papatya</h2>
+    <h2 style="font-size:20px;font-weight:800;margin-bottom:6px" id="loginStoreTitle">Müştərilər Paneli</h2>
     <p style="font-size:12.5px;color:var(--muted);margin-bottom:20px">Müştərilər &amp; Borc Dəftərinə giriş</p>
     <div class="form-grp" style="text-align:left">
       <label class="form-lbl">Giriş Şifrəsi</label>
@@ -886,7 +886,7 @@ body.light-theme .more-grid-btn {
         <i class="fa-solid fa-users"></i>
       </div>
       <div>
-        <h1 id="appStoreTitle">Papatya — Müştərilər &amp; Borclar</h1>
+        <h1 id="appStoreTitle">Müştərilər &amp; Borclar</h1>
         <p>Nisyə müştərilərinin, cari borcların və kredit limitlərinin canlı analitikası</p>
       </div>
     </div>
@@ -1251,40 +1251,43 @@ const STORE_PROFILES = {
 };
 
 function getActiveProfileId() {
-  // 1. URL parametr yoxlanışı (?store=papatya2 və ya ?store=aburcubur)
+  // 1. URL parametr yoxlanışı (?store=aburcubur və ya ?store=papatya2) — ƏN YÜKSƏK PRİORİTET
   try {
     const urlParams = new URLSearchParams(window.location.search || '');
-    const storeParam = urlParams.get('store');
+    const storeParam = (urlParams.get('store') || '').toLowerCase().trim();
     if (storeParam && (STORE_PROFILES[storeParam] || storeParam === 'custom')) {
+      sessionStorage.setItem('kassa_session_profile', storeParam);
+      localStorage.setItem('kassa_active_profile', storeParam);
       return storeParam;
     }
   } catch (e) {}
 
-  // 2. Link / URL əsasında avtomatik mağaza təyini (DƏQİQ VƏ BİRBAŞA)
-  const currentHref = (window.location.href || '').toLowerCase();
-  const currentPath = (window.location.pathname || '').toLowerCase();
-  if (currentHref.includes('papatya2') || currentPath.includes('papatya2') || currentHref.includes('papatya')) {
-    return 'papatya2';
-  }
-  if (currentHref.includes('aburcubur') || currentPath.includes('aburcubur')) {
-    return 'aburcubur';
-  }
-
-  // 3. İstifadəçi cari sessiyada xüsusi seçim edibsə:
+  // 2. İstifadəçi cari sessiyada və ya yaddaşda xüsusi seçim edibsə:
   const sessionSelected = sessionStorage.getItem('kassa_session_profile');
   if (sessionSelected && (STORE_PROFILES[sessionSelected] || sessionSelected === 'custom')) {
     return sessionSelected;
   }
 
-  // 4. Əgər yaddaşda qeyd varsa:
-  let p = localStorage.getItem('kassa_active_profile');
-  if (p && (STORE_PROFILES[p] || p === 'custom')) return p;
+  const localSelected = localStorage.getItem('kassa_active_profile');
+  if (localSelected && (STORE_PROFILES[localSelected] || localSelected === 'custom')) {
+    return localSelected;
+  }
+
+  // 3. Əgər yaddaşda mağaza adı və ya URL-i saxlanılıbsa:
+  const savedStoreName = (localStorage.getItem('kassa_store_name') || '').toLowerCase();
+  if (savedStoreName.includes('abur')) return 'aburcubur';
+  if (savedStoreName.includes('papatya')) return 'papatya2';
 
   const savedUrl = (localStorage.getItem('kassa_supabase_url') || '').toLowerCase();
-  if (savedUrl.includes('ijnbsuupwwyqohysrjlc')) return 'papatya2';
   if (savedUrl.includes('zcjthobakvppowerkxmv')) return 'aburcubur';
+  if (savedUrl.includes('ijnbsuupwwyqohysrjlc')) return 'papatya2';
 
-  // 5. Default olaraq PC və test mühitində Papatya 2 (əsas aktiv baza)
+  // 4. Fayl adının özü (YALNIZ fayl adında xüsusi ad varsa, bütün URL/domen axtarılmır!)
+  const fileName = (window.location.pathname || '').split('/').pop().toLowerCase();
+  if (fileName.includes('aburcubur')) return 'aburcubur';
+  if (fileName.includes('papatya2')) return 'papatya2';
+
+  // 5. Default olaraq Papatya 2
   return 'papatya2';
 }
 
@@ -1314,19 +1317,41 @@ function getActiveStoreName() {
   return 'Papatya 2';
 }
 
+function updateNavLinks() {
+  const pid = getActiveProfileId();
+  document.querySelectorAll('a.nav-switch-btn, a[href*="anbar.html"], a[href*="index.html"], a[href*="musteriler.html"]').forEach(a => {
+    try {
+      const rawHref = a.getAttribute('href');
+      if (!rawHref || rawHref.startsWith('#') || rawHref.startsWith('javascript:')) return;
+      const cleanPath = rawHref.split('?')[0];
+      a.setAttribute('href', `${cleanPath}?store=${encodeURIComponent(pid)}`);
+    } catch(e) {}
+  });
+
+  const mobAnbarBtn = document.getElementById('btnMobNavAnbar');
+  if (mobAnbarBtn) {
+    mobAnbarBtn.setAttribute('onclick', `window.location.href='anbar.html?store=${encodeURIComponent(pid)}'`);
+  }
+  const mobIndexBtn = document.getElementById('btnMobNavIndex');
+  if (mobIndexBtn) {
+    mobIndexBtn.setAttribute('onclick', `window.location.href='index.html?store=${encodeURIComponent(pid)}'`);
+  }
+}
+
 function updateStoreTitle() {
   const name = getActiveStoreName();
+  const pid = getActiveProfileId();
   const titleEl = $('appStoreTitle');
   if (titleEl) titleEl.textContent = `${name} — Müştərilər & Borclar`;
   const loginTitle = $('loginStoreTitle');
-  if (loginTitle) loginTitle.textContent = name;
-  const pid = getActiveProfileId();
+  if (loginTitle) loginTitle.textContent = `${name} Paneli`;
   const pwaName = localStorage.getItem(`kassa_pwa_name_${pid}`) || localStorage.getItem('kassa_pwa_name') || `${name} — Müştərilər Paneli`;
   document.title = pwaName;
   const manifestLink = $('manifestLink');
   if (manifestLink) {
     manifestLink.href = `./manifest.json?pwa_name=${encodeURIComponent(pwaName)}&t=${Date.now()}`;
   }
+  updateNavLinks();
 }
 
 function syncStoreSelectUI() {
@@ -1339,6 +1364,9 @@ function syncStoreSelectUI() {
   if (cardA) cardA.classList.toggle('active', pid === 'aburcubur');
   if (cardP) cardP.classList.toggle('active', pid === 'papatya2');
 }
+
+// Səhifə oxunan kimi mağaza adını dərhal tətbiq edirik
+try { updateStoreTitle(); syncStoreSelectUI(); } catch(e) {}
 
 function switchStoreProfile(profileId, triggerReload = true) {
   if (!STORE_PROFILES[profileId] && profileId !== 'custom') {
@@ -2398,13 +2426,13 @@ window.addEventListener('DOMContentLoaded', checkAuth);
     <button type="button" class="more-sheet-close" onclick="closeMoreSheet()"><i class="fa-solid fa-xmark"></i></button>
   </div>
   <div class="more-sheet-grid">
-    <button type="button" class="more-grid-btn" onclick="window.location.href='index.html'">
+    <button type="button" class="more-grid-btn" id="btnMobNavIndex" onclick="window.location.href='index.html'">
       <div class="more-grid-ico" style="background:rgba(34,211,238,.15);color:#22d3ee"><i class="fa-solid fa-chart-pie"></i></div>
       <div class="more-grid-label">Satış Paneli</div>
       <div class="more-grid-sub">Kassa paneli</div>
     </button>
 
-    <button type="button" class="more-grid-btn" onclick="window.location.href='anbar.html'">
+    <button type="button" class="more-grid-btn" id="btnMobNavAnbar" onclick="window.location.href='anbar.html'">
       <div class="more-grid-ico" style="background:rgba(168,85,247,.15);color:#a855f7"><i class="fa-solid fa-boxes-stacked"></i></div>
       <div class="more-grid-label">Anbar Paneli</div>
       <div class="more-grid-sub">Məhsullar bazası</div>
