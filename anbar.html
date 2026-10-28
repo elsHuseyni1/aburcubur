@@ -259,6 +259,127 @@ body{
   background:rgba(52,211,153,.14);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);
 }
 
+/* ============ AÇILIB-BAĞLANAN (COLLAPSIBLE) SÖLMƏ BARS ============ */
+.collapse-toggle-wrapper {
+  margin-bottom: 14px;
+}
+.collapse-toggle-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 18px;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 14px -4px rgba(0,0,0,0.3);
+  transition: all .2s ease;
+  user-select: none;
+  text-align: left;
+}
+.collapse-toggle-bar:hover {
+  border-color: rgba(99,102,241,0.45);
+  background: rgba(30,41,59,0.7);
+  box-shadow: 0 6px 20px -4px rgba(99,102,241,0.2);
+  transform: translateY(-1px);
+}
+body.light-theme .collapse-toggle-bar {
+  background: #ffffff;
+  border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px -2px rgba(0,0,0,0.05);
+}
+body.light-theme .collapse-toggle-bar:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+.toggle-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.toggle-bar-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.toggle-bar-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.toggle-bar-title {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.light-theme .toggle-bar-title {
+  color: #0f172a;
+}
+.toggle-bar-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.toggle-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.toggle-pill-status {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  transition: all .2s;
+}
+body.light-theme .toggle-pill-status {
+  background: #f1f5f9;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+.toggle-chevron {
+  font-size: 13px;
+  color: var(--muted);
+  transition: transform .25s ease;
+}
+.collapse-toggle-bar.is-open {
+  border-color: rgba(99,102,241,0.5);
+  margin-bottom: 12px;
+}
+.collapse-toggle-bar.is-open .toggle-chevron {
+  transform: rotate(180deg);
+}
+.collapse-toggle-bar.is-open .toggle-pill-status {
+  background: rgba(99,102,241,0.18);
+  border-color: rgba(99,102,241,0.4);
+  color: #818cf8;
+}
+body.light-theme .collapse-toggle-bar.is-open .toggle-pill-status {
+  background: #ede9fe;
+  color: #6366f1;
+  border-color: #c4b5fd;
+}
+
 /* ============ ANALİTİKA BÖLMƏSİ (TOP QAZANC & KAPİTAL) ============ */
 .analytics-grid{
   display:grid;
@@ -401,13 +522,15 @@ td{padding:12px 14px;vertical-align:middle}
   font-family:monospace;font-size:12.5px;font-weight:700;
   color:#38bdf8;letter-spacing:.4px;
 }
-.td-ad{
+.td-mal-adi, .td-ad{
   font-weight:700;
   color:#f8fafc;
   min-width:170px;
   max-width:340px;
   word-break:break-word;
   line-height:1.4;
+  visibility:visible !important;
+  opacity:1 !important;
 }
 .badge-vahid{
   font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;
@@ -902,7 +1025,7 @@ body.light-theme th.sorted{color:#4338ca}
 body.light-theme tbody tr{border-bottom-color:#e2e8f0}
 body.light-theme tbody tr:hover{background:#f8fafc}
 body.light-theme .td-barkod{color:#0284c7;font-weight:700}
-body.light-theme .td-ad{color:#0f172a;font-weight:800}
+body.light-theme .td-mal-adi, body.light-theme .td-ad{color:#0f172a !important;font-weight:800;visibility:visible !important;opacity:1 !important;}
 body.light-theme .badge-vahid{background:#e2e8f0;color:#1e293b;border-color:#cbd5e1}
 body.light-theme .td-maya{color:#c2410c;font-weight:800}
 body.light-theme .td-satis{color:#0f172a;font-weight:800}
@@ -1058,6 +1181,25 @@ body.light-theme .sim-footer-info b{color:#0f172a}
   .kcard-val { font-size: 20px !important; margin-bottom: 4px !important; }
   .kcard-sub { font-size: 11px !important; }
 
+  /* Açılıb-bağlanan Bar Mobil Görünüş */
+  .collapse-toggle-bar {
+    padding: 10px 14px !important;
+    border-radius: 14px !important;
+    gap: 10px !important;
+  }
+  .toggle-bar-icon-wrap {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 13px !important;
+    border-radius: 10px !important;
+  }
+  .toggle-bar-title {
+    font-size: 12.5px !important;
+  }
+  .toggle-bar-hint {
+    display: none !important;
+  }
+
   /* Analitika blokları */
   .analytics-grid { grid-template-columns: 1fr !important; gap: 14px !important; margin-bottom: 16px !important; }
   .panel { padding: 16px 14px !important; border-radius: 18px !important; backdrop-filter: none !important; }
@@ -1183,14 +1325,24 @@ body.light-theme .sim-footer-info b{color:#0f172a}
   .mob-combo { display: flex !important; }
 
   /* 1. Məhsul Adı — Bütün sətri tutur, iri və aydın + Barkod pill */
+  .tbl-wrap tbody td.td-mal-adi,
   .tbl-wrap tbody td.td-ad {
     grid-column: span 2 !important;
     order: 1 !important;
     background: rgba(255,255,255,.05) !important;
     padding: 8px 10px !important;
     border-bottom: 1px solid var(--line-2) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
+  body.light-theme .tbl-wrap tbody td.td-mal-adi,
+  body.light-theme .tbl-wrap tbody td.td-ad {
+    background: rgba(0,0,0,.03) !important;
+    color: #0f172a !important;
+  }
+  .tbl-wrap tbody td.td-mal-adi::before,
   .tbl-wrap tbody td.td-ad::before { display: none !important; }
+  .td-mal-wrap,
   .td-ad-wrap {
     display: flex;
     align-items: center;
@@ -1198,6 +1350,8 @@ body.light-theme .sim-footer-info b{color:#0f172a}
     gap: 8px;
     width: 100%;
     flex-wrap: wrap;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
   .product-name {
     font-size: 13.5px;
@@ -1205,6 +1359,8 @@ body.light-theme .sim-footer-info b{color:#0f172a}
     color: var(--text) !important;
     word-break: break-word;
     line-height: 1.35;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
   body.light-theme .product-name { color: #0f172a !important; }
   .mob-barcode-pill {
@@ -1574,8 +1730,27 @@ body.light-theme .more-grid-btn {
     </div>
   </section>
 
+  <!-- ============ AÇILIB-BAĞLANAN BÖLMƏ: TOP 5 ANALİTİKA ============ -->
+  <div class="collapse-toggle-wrapper">
+    <button type="button" class="collapse-toggle-bar" id="btnToggleAnalytics" onclick="toggleCollapseSection('secAnalytics', this)">
+      <div class="toggle-bar-left">
+        <span class="toggle-bar-icon-wrap" style="background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3)">
+          <i class="fa-solid fa-trophy"></i>
+        </span>
+        <div class="toggle-bar-text">
+          <span class="toggle-bar-title">Ən Çox Qazanc Verəcək Mallar (Top 5) &amp; Ən Çox Maya Yatırılmış Mallar (Top 5)</span>
+          <span class="toggle-bar-hint">Potensial mənfəət və kapital yükü analitikasını görmək üçün klikləyin</span>
+        </div>
+      </div>
+      <div class="toggle-bar-right">
+        <span class="toggle-pill-status">Göstər</span>
+        <i class="fa-solid fa-chevron-down toggle-chevron"></i>
+      </div>
+    </button>
+  </div>
+
   <!-- ============ ANALİTİKA BÖLMƏSİ ============ -->
-  <section class="analytics-grid" id="secAnalytics">
+  <section class="analytics-grid" id="secAnalytics" style="display: none;">
     <!-- 1. Ən Çox Qazanc Verəcək Mallar -->
     <div class="panel">
       <div class="panel-head">
@@ -1633,8 +1808,27 @@ body.light-theme .more-grid-btn {
     </div>
   </section>
 
+  <!-- ============ AÇILIB-BAĞLANAN BÖLMƏ: QİYMƏT SİMULYATORU ============ -->
+  <div class="collapse-toggle-wrapper">
+    <button type="button" class="collapse-toggle-bar" id="btnToggleSimTeaser" onclick="toggleCollapseSection('secSimTeaser', this)">
+      <div class="toggle-bar-left">
+        <span class="toggle-bar-icon-wrap" style="background:rgba(56,189,248,0.15);color:#38bdf8;border:1px solid rgba(56,189,248,0.3)">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </span>
+        <div class="toggle-bar-text">
+          <span class="toggle-bar-title">Qiymət Simulyatoru: 5 və ya 10 qəpik artım nə qədər qazandırar?</span>
+          <span class="toggle-bar-hint">"What-If" qazanc kalkulyatorunu görmək üçün klikləyin</span>
+        </div>
+      </div>
+      <div class="toggle-bar-right">
+        <span class="toggle-pill-status">Göstər</span>
+        <i class="fa-solid fa-chevron-down toggle-chevron"></i>
+      </div>
+    </button>
+  </div>
+
   <!-- ============ QİYMƏT SİMULYATORU TEASER BANNERİ ============ -->
-  <section class="sim-teaser-card">
+  <section class="sim-teaser-card" id="secSimTeaser" style="display: none;">
     <div class="sim-teaser-content">
       <div class="sim-teaser-badge">
         <i class="fa-solid fa-wand-magic-sparkles"></i>
@@ -2798,6 +2992,29 @@ function calculateKPIs() {
   if ($('chipPriceErrorCount')) $('chipPriceErrorCount').textContent = priceErrorProducts.length;
 }
 
+/* ============ AÇILIB-BAĞLANAN BÖLMƏLƏRİN İDARƏSİ (COLLAPSE / TOGGLE) ============ */
+function toggleCollapseSection(sectionId, btnEl) {
+  const sec = document.getElementById(sectionId);
+  if (!sec) return;
+  const isHidden = (sec.style.display === 'none' || getComputedStyle(sec).display === 'none');
+  
+  if (isHidden) {
+    sec.style.display = (sectionId === 'secAnalytics' ? 'grid' : 'flex');
+    if (btnEl) {
+      btnEl.classList.add('is-open');
+      const pill = btnEl.querySelector('.toggle-pill-status');
+      if (pill) pill.textContent = 'Gizlət';
+    }
+  } else {
+    sec.style.display = 'none';
+    if (btnEl) {
+      btnEl.classList.remove('is-open');
+      const pill = btnEl.querySelector('.toggle-pill-status');
+      if (pill) pill.textContent = 'Göstər';
+    }
+  }
+}
+
 let topProfitLimit = 5;
 let topCostLimit = 5;
 
@@ -3468,8 +3685,8 @@ function renderTable() {
       // =========================================================
       return `
         <tr class="${rowStatusCls}">
-          <td class="td-ad" data-label="Məhsul">
-            <div class="td-ad-wrap">
+          <td class="td-mal-adi" data-label="Məhsul">
+            <div class="td-mal-wrap">
               <span class="product-name">${escapeHtml(prodName)}</span>
               ${p.barkod ? `<span class="mob-barcode-pill"><i class="fa-solid fa-barcode"></i> ${escapeHtml(p.barkod)}</span>` : ''}
             </div>
@@ -3509,7 +3726,7 @@ function renderTable() {
     return `
       <tr class="${rowStatusCls}">
         <td class="td-barkod">${escapeHtml(p.barkod || '—')}</td>
-        <td class="td-ad">${escapeHtml(prodName)}</td>
+        <td class="td-mal-adi">${escapeHtml(prodName)}</td>
         <td class="td-maya">${money(p.alis_qiymeti)}</td>
         <td class="td-satis">${money(p.satis_qiymeti)}</td>
         <td class="td-unit-profit">+${money(p.unit_profit)}</td>
@@ -3843,6 +4060,10 @@ function handleMobNav(target) {
   } else if (target === 'analytics') {
     document.getElementById('mobNavAnalytics')?.classList.add('active');
     const an = document.getElementById('secAnalytics') || document.querySelector('.analytics-grid');
+    const btn = document.getElementById('btnToggleAnalytics');
+    if (an && (an.style.display === 'none' || getComputedStyle(an).display === 'none')) {
+      toggleCollapseSection('secAnalytics', btn);
+    }
     if (an) an.scrollIntoView({ behavior: 'smooth' });
   } else if (target === 'more') {
     document.getElementById('mobNavMore')?.classList.add('active');

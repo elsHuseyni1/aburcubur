@@ -364,6 +364,23 @@ th.sorted .arw{opacity:1}
 tbody tr{border-bottom:1px solid var(--line-2);transition:background .15s}
 tbody tr:hover{background:rgba(255,255,255,.035)}
 td{padding:12px 14px;vertical-align:middle}
+.td-musteri-adi{
+  font-weight:800;
+  color:var(--text);
+  min-width:170px;
+  visibility:visible !important;
+  opacity:1 !important;
+}
+.customer-name-txt{
+  font-weight:800;
+  color:var(--text);
+  visibility:visible !important;
+  opacity:1 !important;
+}
+body.light-theme .td-musteri-adi,
+body.light-theme .customer-name-txt{
+  color:#0f172a !important;
+}
 
 .badge-status{
   display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:8px;
@@ -696,6 +713,7 @@ body.light-theme .store-card-opt.active{
   }
 
   /* 1. Müştəri Adı — Tam genişlikdə, iri və aydın */
+  .tbl-wrap tbody td.td-musteri-adi,
   .tbl-wrap tbody td.td-ad {
     grid-column: span 2 !important;
     order: 1 !important;
@@ -705,7 +723,15 @@ body.light-theme .store-card-opt.active{
     background: rgba(255,255,255,.05) !important;
     padding: 8px 10px !important;
     border-bottom: 1px solid var(--line-2) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
+  body.light-theme .tbl-wrap tbody td.td-musteri-adi,
+  body.light-theme .tbl-wrap tbody td.td-ad {
+    background: rgba(0,0,0,.03) !important;
+    color: #0f172a !important;
+  }
+  .tbl-wrap tbody td.td-musteri-adi::before,
   .tbl-wrap tbody td.td-ad::before { display: none !important; }
 
   /* 2. Telefon & Vəziyyət */
@@ -1952,7 +1978,7 @@ function renderTable() {
 
     return `
       <tr class="${rowStatusCls}">
-        <td class="td-ad" data-label="Müştəri">${escapeHtml(c.ad_soyad)}</td>
+        <td class="td-musteri-adi" data-label="Müştəri"><span class="customer-name-txt">${escapeHtml(c.ad_soyad)}</span></td>
         <td class="td-tel" data-label="Telefon">
           ${c.telefon ? `<a href="tel:${c.telefon}" style="color:inherit;text-decoration:none"><i class="fa-solid fa-phone" style="font-size:10px;margin-right:4px;color:#38bdf8"></i>${c.telefon}</a>` : '—'}
         </td>
