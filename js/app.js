@@ -1,4 +1,4 @@
-/* =====================================================================
+﻿/* =====================================================================
    1) KONFİQURASİYA VƏ DEFOLT DƏYƏRLƏR
    ===================================================================== */
 const STORE_PROFILES = {
@@ -3529,7 +3529,8 @@ const CMD_ITEMS = [
   { title: 'Anbar Paneli', sub: 'Məhsullar və qalıqlar bazası', icon: 'fa-boxes-stacked', action: () => { window.location.href = 'anbar.html'; } },
   { title: 'Müştərilər Paneli', sub: 'Müştərilər və borclar bazası', icon: 'fa-users', action: () => { window.location.href = 'musteriler.html'; } },
   { title: 'Tam Ekran', sub: 'Ekranı böyüt və ya kiçilt', icon: 'fa-expand', action: () => toggleFullScreen() },
-  { title: 'Keşi və Yaddaşı Təmizlə', sub: 'Bütün köhnə keşləri sil və səhifəni tam sıfırla', icon: 'fa-broom', action: () => forceClearAllCachesAndReload() }
+  { title: 'Keşi və Yaddaşı Təmizlə', sub: 'Bütün köhnə keşləri sil və səhifəni tam sıfırla', icon: 'fa-broom', action: () => forceClearAllCachesAndReload() },
+  { title: 'Diaqnostika və Sürət Testi', sub: 'GPU, şəbəkə və brauzer xətalarını test et', icon: 'fa-stethoscope', action: () => { window.location.href = 'diaqnostika.html'; } }
 ];
 
 function openCmdPalette() {
@@ -3813,3 +3814,54 @@ function initAutoSelfHeal() {
 }
 
 window.forceClearAllCachesAndReload = forceClearAllCachesAndReload;
+
+
+/* =====================================================================
+   30) QLOBAL WINDOW ƏLAQƏLƏNDİRMƏSİ (HTML onclick uyğunluğu & Modul Təhlükəsizliyi)
+   ===================================================================== */
+if (typeof window !== 'undefined') {
+  Object.assign(window, {
+    verifyPassword: typeof verifyPassword !== 'undefined' ? verifyPassword : null,
+    openSettingsModal: typeof openSettingsModal !== 'undefined' ? openSettingsModal : null,
+    closeSettingsModal: typeof closeSettingsModal !== 'undefined' ? closeSettingsModal : null,
+    saveSettingsFromModal: typeof saveSettingsFromModal !== 'undefined' ? saveSettingsFromModal : null,
+    logout: typeof logout !== 'undefined' ? logout : null,
+    refreshData: typeof refreshData !== 'undefined' ? refreshData : null,
+    exportToExcel: typeof exportToExcel !== 'undefined' ? exportToExcel : null,
+    goToSlide: typeof goToSlide !== 'undefined' ? goToSlide : null,
+    goToMainSlide: typeof goToMainSlide !== 'undefined' ? goToMainSlide : null,
+    setMainChartMode: typeof setMainChartMode !== 'undefined' ? setMainChartMode : null,
+    setTopSortMode: typeof setTopSortMode !== 'undefined' ? setTopSortMode : null,
+    openDeleteCategoryModal: typeof openDeleteCategoryModal !== 'undefined' ? openDeleteCategoryModal : null,
+    confirmDeleteCategory: typeof confirmDeleteCategory !== 'undefined' ? confirmDeleteCategory : null,
+    closeDeleteCategoryModal: typeof closeDeleteCategoryModal !== 'undefined' ? closeDeleteCategoryModal : null,
+    openLossModal: typeof openLossModal !== 'undefined' ? openLossModal : null,
+    closeLossModal: typeof closeLossModal !== 'undefined' ? closeLossModal : null,
+    exportLossExcel: typeof exportLossExcel !== 'undefined' ? exportLossExcel : null,
+    filterLossSalesOnly: typeof filterLossSalesOnly !== 'undefined' ? filterLossSalesOnly : null,
+    toggleNotificationsModal: typeof toggleNotificationsModal !== 'undefined' ? toggleNotificationsModal : null,
+    closeNotificationsModal: typeof closeNotificationsModal !== 'undefined' ? closeNotificationsModal : null,
+    clearAllNotifications: typeof clearAllNotifications !== 'undefined' ? clearAllNotifications : null,
+    toggleTheme: typeof toggleTheme !== 'undefined' ? toggleTheme : null,
+    toggleSound: typeof toggleSound !== 'undefined' ? toggleSound : null,
+    toggleFullScreen: typeof toggleFullScreen !== 'undefined' ? toggleFullScreen : null,
+    openCmdPalette: typeof openCmdPalette !== 'undefined' ? openCmdPalette : null,
+    forceClearAllCachesAndReload: typeof forceClearAllCachesAndReload !== 'undefined' ? forceClearAllCachesAndReload : null,
+    triggerPwaInstall: typeof triggerPwaInstall !== 'undefined' ? triggerPwaInstall : null,
+    selectProfileInModal: typeof selectProfileInModal !== 'undefined' ? selectProfileInModal : null,
+    testSupabaseInHtml: typeof testSupabaseInHtml !== 'undefined' ? testSupabaseInHtml : null,
+    resetDefaultCredentials: typeof resetDefaultCredentials !== 'undefined' ? resetDefaultCredentials : null,
+    togglePasswordVisibility: typeof togglePasswordVisibility !== 'undefined' ? togglePasswordVisibility : null,
+    toggleSettingsKeyVisibility: typeof toggleSettingsKeyVisibility !== 'undefined' ? toggleSettingsKeyVisibility : null,
+    toggleSettingsPwdVisibility: typeof toggleSettingsPwdVisibility !== 'undefined' ? toggleSettingsPwdVisibility : null,
+    testSoundInSettings: typeof testSoundInSettings !== 'undefined' ? testSoundInSettings : null,
+    setPageStep: typeof setPageStep !== 'undefined' ? setPageStep : null,
+    loadMoreRows: typeof loadMoreRows !== 'undefined' ? loadMoreRows : null,
+    closeReceiptModal: typeof closeReceiptModal !== 'undefined' ? closeReceiptModal : null,
+    printReceiptDirect: typeof printReceiptDirect !== 'undefined' ? printReceiptDirect : null,
+    downloadReceiptImage: typeof downloadReceiptImage !== 'undefined' ? downloadReceiptImage : null,
+    shareReceiptWhatsApp: typeof shareReceiptWhatsApp !== 'undefined' ? shareReceiptWhatsApp : null,
+    closeMoreSheet: typeof closeMoreSheet !== 'undefined' ? closeMoreSheet : null,
+    handleMobNav: typeof handleMobNav !== 'undefined' ? handleMobNav : null
+  });
+}
